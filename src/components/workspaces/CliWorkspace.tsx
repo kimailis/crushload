@@ -30,6 +30,17 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
         '------------------------------------------------'
       ]);
       setLogs(['Established secure IT workspace.', 'Syncing LDAP directory schemas...']);
+    } else if (careerId === 'cyber-activist') {
+      setTerminalHistory([
+        'ghostnet shell [v9.1-dark] — session routed via 7 relays',
+        'OpSec Status: NOMINAL | Identity: MASKED',
+        '------------------------------------------------',
+        'Type "help" to list operation commands.',
+        'Type "botnet status" to review node fleet.',
+        'Type "recon <target>" to footprint a target.',
+        '------------------------------------------------'
+      ]);
+      setLogs(['Tor circuit established.', 'Botnet heartbeat verified.']);
     } else {
       setTerminalHistory([
         'CLI Operations Core Online.',
@@ -47,9 +58,11 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
     const cmd = terminalInput.trim();
     if (!cmd) return;
 
-    const prefix = sshSession 
-      ? `admin@${sshSession}:~$` 
-      : `sysadmin@corp-router:~$`;
+    const prefix = sshSession
+      ? `admin@${sshSession}:~$`
+      : careerId === 'cyber-activist'
+        ? 'root@ghostnode:~#'
+        : `sysadmin@corp-router:~$`;
 
     setTerminalHistory(prev => [...prev, `${prefix} ${cmd}`]);
     const lowerCmd = cmd.toLowerCase().split(/\s+/);
@@ -125,6 +138,19 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
           'Standard: "clear", "ping <host>"',
           '========================================'
         ]);
+      } else if (careerId === 'cyber-activist') {
+        setTerminalHistory(prev => [
+          ...prev,
+          '========================================',
+          'Operation Commands:',
+          ' - botnet status          : Fleet size, regions, heartbeat',
+          ' - recon <target>         : Passive footprint of a target',
+          ' - tor status             : Relay chain & anonymity check',
+          ' - leak status            : Mirror seeding progress',
+          '----------------------------------------',
+          'Standard: "clear", "ping <host>", "ls", "top"',
+          '========================================'
+        ]);
       } else {
         setTerminalHistory(prev => [
           ...prev,
@@ -135,10 +161,54 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
           ' - clear - Flush terminal lines'
         ]);
       }
+    } else if (mainCommand === 'botnet') {
+      const sub = lowerCmd[1];
+      if (sub === 'status') {
+        setTerminalHistory(prev => [
+          ...prev,
+          'BOTNET FLEET STATUS:',
+          '----------------------------------------',
+          ' Active nodes : 45,217',
+          ' Regions      : NA 41% | EU 33% | APAC 26%',
+          ' Heartbeat    : 99.2% reachable',
+          ' C2 channel   : ENCRYPTED (rotating)',
+        ]);
+      } else {
+        setTerminalHistory(prev => [...prev, 'Usage: botnet status']);
+      }
+    } else if (mainCommand === 'recon') {
+      const target = lowerCmd[1];
+      if (!target) {
+        setTerminalHistory(prev => [...prev, 'Usage: recon <target-domain>']);
+      } else {
+        setTerminalHistory(prev => [
+          ...prev,
+          `Passive footprint: ${target}`,
+          '----------------------------------------',
+          ' WHOIS      : privacy-protected (registrar: NodeRegistry)',
+          ' Open ports : 80/http, 443/https, 8080/alt',
+          ' WAF        : detected (CloudShield)',
+          ' Exposure   : 3 subdomains, 1 stale S3 bucket',
+        ]);
+      }
+    } else if (mainCommand === 'tor') {
+      setTerminalHistory(prev => [
+        ...prev,
+        'TOR CIRCUIT: 7 relays | exit node: NL',
+        'Anonymity check: PASS — no DNS/WebRTC leak detected.'
+      ]);
+    } else if (mainCommand === 'leak') {
+      setTerminalHistory(prev => [
+        ...prev,
+        'LEAK DISTRIBUTION STATUS:',
+        ' Mirrors seeded : 12 / 14',
+        ' Onion drop     : LIVE',
+        ' Journalists    : 3 confirmed receipt',
+      ]);
     } else if (mainCommand === 'ls') {
       setTerminalHistory(prev => [
-        ...prev, 
-        'drwxr-xr-x config', 
+        ...prev,
+        'drwxr-xr-x config',
         'drwxr-xr-x sbin_apps', 
         '-rw-r--r-- ldap_heartbeat.log', 
         '-rwx------ config_routing_table.sh'
@@ -287,7 +357,7 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
         <div className="flex items-center gap-2">
           <TerminalIcon className="w-4 h-4 text-zinc-400" />
           <span className="text-[11px] font-mono text-zinc-400 tracking-wider font-bold">
-            {sshSession ? `SSH: admin@${sshSession}` : 'SYSADMIN TERMINAL INTERFACE - LOCAL'}
+            {sshSession ? `SSH: admin@${sshSession}` : careerId === 'cyber-activist' ? 'GHOSTNET SHELL - ANON' : 'SYSADMIN TERMINAL INTERFACE - LOCAL'}
           </span>
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#ffaa00]">
@@ -304,7 +374,7 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
       
       <form onSubmit={executeCommand} className="w-full bg-[#05070f] p-3 flex items-center gap-2 border-t border-white/5 shrink-0 focus-within:ring-1 focus-within:ring-white/15">
         <span className="text-emerald-500 font-mono font-bold pl-2 truncate shrink-0">
-          {sshSession ? `admin@${sshSession}:~$` : 'sysadmin@corp-router:~$'}
+          {sshSession ? `admin@${sshSession}:~$` : careerId === 'cyber-activist' ? 'root@ghostnode:~#' : 'sysadmin@corp-router:~$'}
         </span>
         <input 
           type="text" 

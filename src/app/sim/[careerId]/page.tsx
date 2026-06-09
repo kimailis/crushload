@@ -407,7 +407,7 @@ export default function SimWrapper() {
     }
 
     switch (config.layoutType) {
-      case 'cli': return <CliWorkspace />;
+      case 'cli': return <CliWorkspace careerId={config.id} />;
       case 'sql': return <SqlWorkspace careerId={config.id} />;
       case 'editor': return <EditorWorkspace config={config} />;
       case 'ticketing': return config.id === 'spy-manager' ? <FieldIntelWorkspace config={config} /> : <TicketingWorkspace config={config} />;
