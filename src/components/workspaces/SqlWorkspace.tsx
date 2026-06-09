@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Database, Play, History, Table, Search, AlertCircle, FileSpreadsheet, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
+type MockDb = Record<string, { cols: string[], rows: any[][] }>;
+
 // Highly detailed simulated corporate database tables
-const MOCK_DB: Record<string, { cols: string[], rows: any[][] }> = {
+const ANALYST_DB: MockDb = {
   employees: {
     cols: ['emp_id', 'full_name', 'department', 'salary_usd', 'hire_date'],
     rows: [
@@ -47,20 +49,130 @@ const MOCK_DB: Record<string, { cols: string[], rows: any[][] }> = {
   }
 };
 
-const SAMPLE_QUERIES = [
+const ENGINEER_DB: MockDb = {
+  pipeline_runs: {
+    cols: ['run_id', 'dag_name', 'started_at', 'duration_min', 'state'],
+    rows: [
+      ['run-8841', 'production_revenue_pipeline_v3', '2026-06-09 02:00', 42, 'FAILED'],
+      ['run-8840', 'customer_events_hourly', '2026-06-09 01:00', 8, 'SUCCESS'],
+      ['run-8839', 'ml_feature_refresh', '2026-06-09 00:30', 95, 'SUCCESS'],
+      ['run-8838', 'production_revenue_pipeline_v3', '2026-06-08 02:00', 38, 'SUCCESS'],
+      ['run-8837', 'gdpr_deletion_sweep', '2026-06-08 01:15', 12, 'SUCCESS']
+    ]
+  },
+  dag_tasks: {
+    cols: ['task_id', 'dag_name', 'retries', 'avg_runtime_sec', 'last_state'],
+    rows: [
+      ['extract_sales_db', 'production_revenue_pipeline_v3', 0, 180, 'SUCCESS'],
+      ['extract_web_logs', 'production_revenue_pipeline_v3', 1, 240, 'SUCCESS'],
+      ['transform_coalesce', 'production_revenue_pipeline_v3', 0, 310, 'SUCCESS'],
+      ['join_events_db', 'production_revenue_pipeline_v3', 3, 520, 'FAILED'],
+      ['load_analytics_dw', 'production_revenue_pipeline_v3', 0, 95, 'SKIPPED']
+    ]
+  },
+  kafka_topics: {
+    cols: ['topic', 'partitions', 'lag', 'throughput_mb_s', 'status'],
+    rows: [
+      ['user.events.raw', 24, 1250, 18.4, 'BACKPRESSURE'],
+      ['orders.transactions', 12, 0, 6.2, 'HEALTHY'],
+      ['logs.application', 48, 320, 41.0, 'HEALTHY'],
+      ['ml.features.stream', 6, 8900, 2.1, 'LAGGING']
+    ]
+  },
+  warehouse_costs: {
+    cols: ['warehouse', 'credits_used', 'queries_run', 'avg_query_sec', 'owner_team'],
+    rows: [
+      ['ANALYTICS_XL', 4200, 18211, 14.2, 'Data Analytics'],
+      ['ETL_LOADER', 2800, 902, 96.5, 'Data Engineering'],
+      ['DS_SANDBOX', 6100, 4421, 44.8, 'Data Science'],
+      ['FINANCE_RPT', 450, 1200, 8.1, 'Finance']
+    ]
+  }
+};
+
+const DB_BY_CAREER: Record<string, MockDb> = {
+  'data-engineer': ENGINEER_DB
+};
+
+const ANALYST_QUERIES = [
   { label: 'Get all employees', sql: 'SELECT * FROM employees;' },
   { label: 'View sales performance Q2', sql: "SELECT * FROM sales_performance WHERE quarter = '2026-Q2';" },
   { label: 'High load servers (>50% CPU)', sql: 'SELECT hostname, cpu_load_percent, status FROM server_status WHERE cpu_load_percent > 50;' },
   { label: 'Critical security policies', sql: "SELECT * FROM security_policy WHERE severity_level = 'CRITICAL';" },
 ];
 
-export default function SqlWorkspace() {
-  const [query, setQuery] = useState('SELECT * FROM employees;');
-  const [selectedTable, setSelectedTable] = useState<string>('employees');
-  const [history, setHistory] = useState<string[]>(['SELECT * FROM employees;']);
+const ENGINEER_QUERIES = [
+  { label: 'Failed pipeline runs', sql: "SELECT * FROM pipeline_runs WHERE state = 'FAILED';" },
+  { label: 'Flaky tasks (retries > 0)', sql: 'SELECT * FROM dag_tasks WHERE retries > 0;' },
+  { label: 'Lagging Kafka topics', sql: 'SELECT topic, lag, status FROM kafka_topics WHERE lag > 500;' },
+  { label: 'Warehouse spend by team', sql: 'SELECT warehouse, credits_used, owner_team FROM warehouse_costs;' },
+];
+
+const QUERIES_BY_CAREER: Record<string, typeof ANALYST_QUERIES> = {
+  'data-engineer': ENGINEER_QUERIES
+};
+
+// Tiny SQL evaluator: supports SELECT <cols|*> FROM <table> [WHERE col <op> value]
+function runQuery(db: MockDb, rawQuery: string): { cols: string[], rows: any[][] } {
+  const cleaned = rawQuery.trim().replace(/;$/, '').toLowerCase();
+  const tableName = Object.keys(db).find(tbl => cleaned.includes(`from ${tbl}`));
+  if (!tableName) {
+    throw new Error('Relation "' + (cleaned.split(/from\s+/)[1]?.split(/\s/)[0] || '?') + '" does not exist. Check table schemas listed on left panel.');
+  }
+
+  const table = db[tableName];
+  let cols = [...table.cols];
+  let rows = table.rows.map(r => [...r]);
+
+  const whereMatch = cleaned.match(/where\s+(\w+)\s*(=|!=|>=|<=|>|<)\s*'?"?([^'"]+?)'?"?\s*$/);
+  if (whereMatch) {
+    const [, col, op, rawVal] = whereMatch;
+    const colIdx = table.cols.findIndex(c => c.toLowerCase() === col);
+    if (colIdx === -1) throw new Error(`Column "${col}" does not exist on ${tableName}.`);
+    const val = rawVal.trim();
+    const numVal = Number(val);
+    rows = rows.filter(r => {
+      const cell = r[colIdx];
+      if (typeof cell === 'number' && !Number.isNaN(numVal)) {
+        switch (op) {
+          case '=': return cell === numVal;
+          case '!=': return cell !== numVal;
+          case '>': return cell > numVal;
+          case '<': return cell < numVal;
+          case '>=': return cell >= numVal;
+          case '<=': return cell <= numVal;
+        }
+      }
+      const cellStr = String(cell).toLowerCase();
+      return op === '!=' ? cellStr !== val : cellStr === val;
+    });
+  }
+
+  const selectMatch = cleaned.match(/select\s+(.+?)\s+from/);
+  if (selectMatch && selectMatch[1].trim() !== '*') {
+    const wanted = selectMatch[1].split(',').map(c => c.trim());
+    const indices = wanted.map(w => table.cols.findIndex(c => c.toLowerCase() === w));
+    if (indices.some(i => i === -1)) {
+      throw new Error(`Unknown column in SELECT list. Available: ${table.cols.join(', ')}.`);
+    }
+    cols = indices.map(i => table.cols[i]);
+    rows = rows.map(r => indices.map(i => r[i]));
+  }
+
+  return { cols, rows };
+}
+
+export default function SqlWorkspace({ careerId }: { careerId?: string }) {
+  const MOCK_DB = DB_BY_CAREER[careerId || ''] || ANALYST_DB;
+  const SAMPLE_QUERIES = QUERIES_BY_CAREER[careerId || ''] || ANALYST_QUERIES;
+  const firstTable = Object.keys(MOCK_DB)[0];
+
+  const [query, setQuery] = useState(`SELECT * FROM ${firstTable};`);
+  const [selectedTable, setSelectedTable] = useState<string>(firstTable);
+  const [history, setHistory] = useState<string[]>([`SELECT * FROM ${firstTable};`]);
   const [results, setResults] = useState<{ cols: string[], rows: any[][] }>({
-    cols: MOCK_DB.employees.cols,
-    rows: MOCK_DB.employees.rows
+    cols: MOCK_DB[firstTable].cols,
+    rows: MOCK_DB[firstTable].rows
   });
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
@@ -77,52 +189,11 @@ export default function SqlWorkspace() {
 
   const executeQuery = () => {
     setErrorStatus(null);
-    const cleaned = query.trim().replace(/;$/, '').toLowerCase();
-    
-    // Add to history
     if (!history.includes(query)) {
       setHistory(prev => [query, ...prev].slice(0, 10));
     }
-
     try {
-      if (cleaned.includes('from employees')) {
-        let rows = [...MOCK_DB.employees.rows];
-        setResults({ cols: MOCK_DB.employees.cols, rows });
-      } else if (cleaned.includes('from sales_performance')) {
-        let rows = [...MOCK_DB.sales_performance.rows];
-        if (cleaned.includes("quarter = '2026-q2'") || cleaned.includes('quarter="2026-q2"')) {
-          rows = rows.filter(r => r[0] === '2026-Q2');
-        }
-        setResults({ cols: MOCK_DB.sales_performance.cols, rows });
-      } else if (cleaned.includes('from server_status')) {
-        let rows = [...MOCK_DB.server_status.rows];
-        if (cleaned.includes('cpu_load_percent > 50') || cleaned.includes('cpu_load_percent>50')) {
-          rows = rows.filter(r => r[4] > 50);
-          setResults({ 
-            cols: ['hostname', 'cpu_load_percent', 'status'], 
-            rows: rows.map(r => [r[1], r[4], r[5]]) 
-          });
-          return;
-        }
-        setResults({ cols: MOCK_DB.server_status.cols, rows });
-      } else if (cleaned.includes('from security_policy')) {
-        let rows = [...MOCK_DB.security_policy.rows];
-        if (cleaned.includes("severity_level = 'critical'") || cleaned.includes('severity_level="critical"')) {
-          rows = rows.filter(r => r[4] === 'CRITICAL');
-        }
-        setResults({ cols: MOCK_DB.security_policy.cols, rows });
-      } else {
-        // Generic fuzzy parsing
-        const foundTable = Object.keys(MOCK_DB).find(tbl => cleaned.includes(`from ${tbl}`) || cleaned.includes(tbl));
-        if (foundTable) {
-          setResults({
-            cols: MOCK_DB[foundTable].cols,
-            rows: MOCK_DB[foundTable].rows
-          });
-        } else {
-          throw new Error('Relation "' + query.split(' ')[2] + '" does not exist. Check table schemas listed on left panel.');
-        }
-      }
+      setResults(runQuery(MOCK_DB, query));
     } catch (e: any) {
       setErrorStatus(e.message || 'Syntax error near line 1.');
     }

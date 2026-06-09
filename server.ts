@@ -87,13 +87,16 @@ app.post("/api/ai/advisor", async (req, res) => {
     });
   }
 
-  const { persona, userMessage, currentArchitecture, metrics, activeAlerts } = req.body;
+  const { persona, advisor, careerName, userMessage, currentArchitecture, metrics, activeAlerts } = req.body;
 
   if (persona !== undefined && !ADVISOR_PERSONAS.includes(persona)) {
     return res.status(400).json({ text: "Unknown advisor persona.", success: false });
   }
   if (userMessage !== undefined && typeof userMessage !== "string") {
     return res.status(400).json({ text: "Invalid message payload.", success: false });
+  }
+  if (advisor !== undefined && (typeof advisor?.name !== "string" || typeof advisor?.role !== "string")) {
+    return res.status(400).json({ text: "Invalid advisor payload.", success: false });
   }
 
   try {
@@ -119,14 +122,21 @@ If there is an active breach, you get highly nervous and recommend quick isolati
 Your tone is polite, PR-fluent, polished, and communicative.`
     };
 
-    const systemInstruction = `${systemPromptMap[persona] || "You are a cyber security expert."}
-You are assisting the Security Project Manager / Lead Security Architect (the player).
-Based on the current architecture: ${compactJson(currentArchitecture)}.
+    // Generic stakeholder prompt for non-cybersec careers; falls back to the
+    // cyber-architect persona map when a known persona key is supplied.
+    const characterPrompt = persona
+      ? (systemPromptMap[persona] || "You are a cyber security expert.")
+      : `You are ${String(advisor?.name || "a colleague").slice(0, 60)}, ${String(advisor?.role || "a stakeholder").slice(0, 80)} in a fictional "${String(careerName || "corporate").slice(0, 60)}" workplace simulation game.
+Stay fully in character: speak from your role's perspective, with its typical priorities, vocabulary and biases. Be vivid and a little satirical about corporate life, but give genuinely useful in-game guidance.`;
+
+    const systemInstruction = `${characterPrompt}
+You are advising the player, who plays the lead professional in this simulation.
+${persona ? `Based on the current architecture: ${compactJson(currentArchitecture)}.` : ""}
 Game Metrics: ${compactJson(metrics, 500)}.
-Active high severity alerts: ${compactJson(activeAlerts, 1000)}.
+${persona ? `Active high severity alerts: ${compactJson(activeAlerts, 1000)}.` : ""}
 
 Respond to the player's message in character.
-Keep your response concise (between 3 to 5 sentences). You can use simple markdown (bold text, short bullet points). Encourage the player to take strategic defensive action, upgrade components, patch bugs, use terminal commands, or balance the budget!`;
+Keep your response concise (between 3 to 5 sentences). You can use simple markdown (bold text, short bullet points). Encourage the player to take strategic action in their workspace tools and balance their metrics. Everything is fictional game content.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
@@ -177,7 +187,7 @@ app.post("/api/ai/generate-mission", async (req, res) => {
     }]);
   }
 
-  const { currentArchitecture, metrics } = req.body;
+  const { currentArchitecture, metrics, careerName } = req.body;
 
   if (!aiCallAllowed(req.ip || "unknown")) {
     // Same in-character fallback shape the no-key path uses, so the game keeps flowing
@@ -196,12 +206,14 @@ app.post("/api/ai/generate-mission", async (req, res) => {
   }
 
   try {
-    const prompt = `System state: architecture=${compactJson(currentArchitecture)}, metrics=${compactJson(metrics, 500)}.
-Generate a JSON payload with a "scenarioBatch" array of 2 to 4 emails.
+    const careerLabel = String(careerName || "cyber security architect").slice(0, 60);
+    const prompt = `You are generating fictional in-game emails for a satirical "${careerLabel}" workplace simulation.
+System state: architecture=${compactJson(currentArchitecture)}, metrics=${compactJson(metrics, 500)}.
+Generate a JSON payload with a "scenarioBatch" array of 2 to 4 emails. Senders, subjects and missions must fit the daily reality of a ${careerLabel} (their stakeholders, tools and jargon).
 Requirements:
 1. One email must be a "large material" (detailed instructions/report).
 2. The others should be small interactive materials.
-3. At least one must be a humorous parody of corporate/cybersecurity world (e.g., absurd password rules, phishy vendor gifts, CFO complaining about coffee budget vs firewall).
+3. At least one must be a humorous parody of the ${careerLabel}'s corporate world (absurd policies, impossible deadlines, clueless executives).
 Format MUST be a JSON object with a single property "scenarioBatch" containing objects with:
 - sender (string, e.g. "Evelyn (CEO)")
 - senderRole (string)

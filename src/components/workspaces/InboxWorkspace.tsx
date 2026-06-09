@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MailOpen, CheckCircle, Clock, Send, MessageSquare, Reply, Briefcase, Check, ShieldAlert, BadgeInfo, Star } from 'lucide-react';
+import { Mail, MailOpen, CheckCircle, Clock, Send, MessageSquare, Briefcase, Check, ShieldAlert, BadgeInfo, Star, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CareerConfig } from '../../lib/career-config';
 import { Mission } from '../../lib/mission-data';
+import { MissionOption } from '../../types';
 
-export default function InboxWorkspace({ 
-  config, 
-  missions, 
-  setMissions, 
-  acceptMission, 
-  completeMission 
-}: { 
+export default function InboxWorkspace({
+  config,
+  missions,
+  setMissions,
+  acceptMission,
+  completeMission,
+  resolveOption,
+  onRequestDirectives,
+  generating = false
+}: {
   config: CareerConfig,
   missions: Mission[],
   setMissions: React.Dispatch<React.SetStateAction<Mission[]>>,
-  acceptMission: (id: string) => void, 
-  completeMission: (id: string) => void 
+  acceptMission: (id: string) => void,
+  completeMission: (id: string) => void,
+  resolveOption?: (missionId: string, option: MissionOption) => void,
+  onRequestDirectives?: () => void,
+  generating?: boolean
 }) {
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(missions.length > 0 ? missions[0].id : null);
   const selectedMission = missions.find(m => m.id === selectedMissionId) || null;
@@ -36,9 +43,23 @@ export default function InboxWorkspace({
              <Mail className="w-4 h-4 text-indigo-400" /> 
              <h2 className="text-[13px] font-bold tracking-widest text-zinc-300 uppercase">INBOX OUTLOOK</h2>
           </div>
-          <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono font-bold">
-             {missions.filter(m => m.status === 'unread').length} Unread
-          </span>
+          <div className="flex items-center gap-2">
+            {onRequestDirectives && (
+              <button
+                onClick={onRequestDirectives}
+                disabled={generating}
+                aria-label="Request new directives"
+                title="Request new AI-generated directives"
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 hover:bg-indigo-500/30 disabled:opacity-50 text-indigo-300 border border-indigo-500/25 px-2.5 py-1 rounded-full transition cursor-pointer"
+              >
+                {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span className="hidden xl:inline">{generating ? 'Receiving…' : 'Directives'}</span>
+              </button>
+            )}
+            <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono font-bold">
+               {missions.filter(m => m.status === 'unread').length} Unread
+            </span>
+          </div>
         </div>
 
         {/* Email feed */}
@@ -131,20 +152,34 @@ export default function InboxWorkspace({
              </div>
              
              {/* Mission directives logic (Action banner) */}
-             {(selectedMission as any).objective && (
+             {(selectedMission.objective || (selectedMission.options && selectedMission.options.length > 0)) && (
                 <div className="p-6 bg-indigo-950/25 border border-indigo-500/20 rounded-[22px] shadow-lg flex flex-col gap-4">
                   <div className="flex items-center gap-2.5"><ShieldAlert className="text-indigo-400 w-5 h-5 shrink-0" /><h3 className="text-zinc-50 font-bold text-[13px] uppercase tracking-wider">Mission Action Required Directive</h3></div>
                   <div className="flex items-center justify-between bg-black/40 px-4 py-2.5 rounded-xl border border-white/5 font-mono">
                      <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider">Operational reward pay:</span>
                      <span className="text-[15px] text-emerald-400 font-bold">${selectedMission.missionRewardBudget?.toLocaleString() || 500}</span>
                   </div>
-                  
-                  {!selectedMission.missionAccepted && !selectedMission.missionCompleted ? (
-                    <button onClick={() => acceptMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20 uppercase tracking-widest"><Briefcase className="w-4 h-4" /> Accept Mission Directive</button>
-                  ) : selectedMission.missionAccepted && !selectedMission.missionCompleted ? (
-                    <button onClick={() => completeMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20 uppercase tracking-widest"><CheckCircle className="w-4 h-4" /> Clear and Finish Mission</button>
-                  ) : (
+
+                  {selectedMission.missionCompleted ? (
                     <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-xs py-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 uppercase tracking-widest"><Check className="w-4 h-4" /> Mission Cleared</div>
+                  ) : selectedMission.options && selectedMission.options.length > 0 && resolveOption ? (
+                    <div className="flex flex-col gap-3">
+                      <span className="text-[11px] text-zinc-400 uppercase font-bold tracking-widest">Choose your response:</span>
+                      {selectedMission.options.map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => resolveOption(selectedMission.id, opt)}
+                          className="w-full text-left p-4 rounded-xl bg-white/5 hover:bg-indigo-600/20 border border-white/10 hover:border-indigo-500/40 transition cursor-pointer"
+                        >
+                          <span className="text-[13px] font-semibold text-zinc-100 block mb-1.5">{opt.text}</span>
+                          <span className="text-[11px] font-mono font-bold text-zinc-400">{opt.budgetEffect >= 0 ? '+' : '-'}${Math.abs(opt.budgetEffect).toLocaleString()} resources</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : !selectedMission.missionAccepted ? (
+                    <button onClick={() => acceptMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20 uppercase tracking-widest"><Briefcase className="w-4 h-4" /> Accept Mission Directive</button>
+                  ) : (
+                    <button onClick={() => completeMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20 uppercase tracking-widest"><CheckCircle className="w-4 h-4" /> Clear and Finish Mission</button>
                   )}
                 </div>
              )}

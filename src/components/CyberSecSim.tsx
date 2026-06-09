@@ -4,18 +4,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArchNode, SecurityMetric, SecurityEvent, Email, Employee, LogEntry, MissionOption } from '../types';
 import { getInitialCiscoState, parseCiscoCommand, CiscoDeviceState } from '../utils';
 import { INITIAL_NODES, INITIAL_METRICS, INITIAL_EVENTS, INITIAL_EMAILS, INITIAL_EMPLOYEES, INITIAL_LOGS } from '../data';
+import AdvisorChat, { AdvisorPersona, AdvisorMessage } from './AdvisorChat';
 
-const ADVISORS = [
+const ADVISORS: AdvisorPersona[] = [
   { id: 'ops', name: 'Chloe Lin', role: 'Security Ops SRE', avatar: '👩‍💻' },
   { id: 'executive', name: 'Evelyn Chase', role: 'Chief Executive', avatar: '🏢' },
   { id: 'finance', name: 'Marcus Sterling', role: 'CFO / Management', avatar: '💼' },
   { id: 'pr', name: 'Samantha Zane', role: 'Public Relations', avatar: '👩‍💼' }
-] as const;
-
-interface AdvisorMessage {
-  from: 'player' | 'advisor';
-  text: string;
-}
+];
 
 export default function CyberSecSim() {
   const [nodes, setNodes] = useState<ArchNode[]>(INITIAL_NODES);
@@ -36,20 +32,15 @@ export default function CyberSecSim() {
   const [simulationStatus, setSimulationStatus] = useState<string | null>(null);
   const [simulationSuccess, setSimulationSuccess] = useState<boolean | null>(null);
 
-  const [activeAdvisor, setActiveAdvisor] = useState<typeof ADVISORS[number] | null>(null);
+  const [activeAdvisor, setActiveAdvisor] = useState<AdvisorPersona | null>(null);
   const [advisorThreads, setAdvisorThreads] = useState<Record<string, AdvisorMessage[]>>({});
   const [advisorInput, setAdvisorInput] = useState('');
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [generatingMissions, setGeneratingMissions] = useState(false);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     terminalBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [terminalHistory]);
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [advisorThreads, advisorLoading]);
 
   // Compact game-state snapshot sent to the AI endpoints (keeps token spend bounded)
   const buildAiContext = () => ({
@@ -701,75 +692,17 @@ export default function CyberSecSim() {
         </main>
       </div>
 
-      {/* Advisor chat drawer (Slack-style floating panel) */}
       <AnimatePresence>
         {activeAdvisor && (
-          <motion.div
-            key="advisor-chat"
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-            role="dialog"
-            aria-label={`Chat with ${activeAdvisor.name}`}
-            className="fixed bottom-4 right-4 z-[1000] w-[calc(100vw-2rem)] sm:w-[380px] h-[480px] max-h-[75dvh] flex flex-col bg-[#0a0f1c]/95 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl shadow-black/50 overflow-hidden"
-          >
-            <div className="p-4 flex items-center gap-3 border-b border-white/10 bg-white/5 shrink-0">
-              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-xl">{activeAdvisor.avatar}</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-zinc-50 truncate">{activeAdvisor.name}</p>
-                <p className="text-[11px] text-emerald-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {activeAdvisor.role}</p>
-              </div>
-              <button onClick={() => setActiveAdvisor(null)} aria-label="Close advisor chat" className="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-100 transition cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3" aria-live="polite">
-              {(advisorThreads[activeAdvisor.id] || []).length === 0 && (
-                <div className="text-center text-zinc-500 text-[12px] mt-8 px-6 leading-relaxed">
-                  Ask {activeAdvisor.name.split(' ')[0]} for guidance on your current architecture, budget, or active threats.
-                </div>
-              )}
-              {(advisorThreads[activeAdvisor.id] || []).map((msg, i) => (
-                <div key={i} className={`max-w-[85%] p-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-line ${
-                  msg.from === 'player'
-                    ? 'self-end bg-indigo-600 text-white rounded-br-md'
-                    : 'self-start bg-white/5 border border-white/10 text-zinc-200 rounded-bl-md'
-                }`}>
-                  {msg.text}
-                </div>
-              ))}
-              {advisorLoading && (
-                <div className="self-start flex items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl rounded-bl-md text-zinc-400 text-[13px]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> typing…
-                </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-
-            <form
-              onSubmit={e => { e.preventDefault(); sendAdvisorMessage(); }}
-              className="p-3 border-t border-white/10 bg-black/30 flex items-center gap-2 shrink-0"
-            >
-              <input
-                type="text"
-                value={advisorInput}
-                onChange={e => setAdvisorInput(e.target.value)}
-                placeholder={`Message ${activeAdvisor.name.split(' ')[0]}…`}
-                aria-label={`Message to ${activeAdvisor.name}`}
-                className="flex-1 bg-white/5 border border-white/10 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-[13px] text-zinc-100 outline-none transition placeholder-zinc-600"
-              />
-              <button
-                type="submit"
-                disabled={!advisorInput.trim() || advisorLoading}
-                aria-label="Send message"
-                className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
-          </motion.div>
+          <AdvisorChat
+            advisor={activeAdvisor}
+            thread={advisorThreads[activeAdvisor.id] || []}
+            loading={advisorLoading}
+            input={advisorInput}
+            onInputChange={setAdvisorInput}
+            onSend={sendAdvisorMessage}
+            onClose={() => setActiveAdvisor(null)}
+          />
         )}
       </AnimatePresence>
     </div>

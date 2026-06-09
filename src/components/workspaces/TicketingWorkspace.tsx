@@ -7,6 +7,9 @@ export default function TicketingWorkspace({ config }: { config: CareerConfig })
   const [tickets, setTickets] = useState([
     { id: 'INC-4092', title: 'My computer cup holder is broken', reporter: 'VP of Sales', status: 'open', priority: 'high', response: '' },
     { id: 'REQ-1120', title: 'Need access to all production databases', reporter: 'New Intern', status: 'open', priority: 'low', response: '' },
+    { id: 'INC-4115', title: 'Boardroom printer says PC LOAD LETTER', reporter: 'Angry CEO', status: 'open', priority: 'critical', response: '' },
+    { id: 'INC-4101', title: 'WiFi drops whenever the microwave runs', reporter: 'Break Room Crew', status: 'open', priority: 'medium', response: '' },
+    { id: 'REQ-1134', title: 'Unblock "research" website (it is a browser game)', reporter: 'Marketing Lead', status: 'open', priority: 'low', response: '' },
   ]);
 
   const [activeTicket, setActiveTicket] = useState(tickets[0].id);

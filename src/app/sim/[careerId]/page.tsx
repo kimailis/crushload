@@ -5,6 +5,8 @@ import * as Icons from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CAREER_MAP } from '../../../lib/career-config';
 import { INITIAL_MISSIONS, Mission } from '../../../lib/mission-data';
+import { MissionOption } from '../../../types';
+import AdvisorChat, { AdvisorPersona, AdvisorMessage } from '../../../components/AdvisorChat';
 import CliWorkspace from '../../../components/workspaces/CliWorkspace';
 import SqlWorkspace from '../../../components/workspaces/SqlWorkspace';
 import EditorWorkspace from '../../../components/workspaces/EditorWorkspace';
@@ -201,6 +203,12 @@ export default function SimWrapper() {
 
   const [missions, setMissions] = useState<Mission[]>([]);
 
+  const [activeAdvisor, setActiveAdvisor] = useState<AdvisorPersona | null>(null);
+  const [advisorThreads, setAdvisorThreads] = useState<Record<string, AdvisorMessage[]>>({});
+  const [advisorInput, setAdvisorInput] = useState('');
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [generatingMissions, setGeneratingMissions] = useState(false);
+
   useEffect(() => {
     if (localStorage.getItem('sim_user_auth') !== 'true') {
       navigate('/login');
@@ -292,18 +300,95 @@ export default function SimWrapper() {
     addLog('Mission successfully completed.', 'success');
   };
 
+  // The first configured metric is each career's primary resource pool
+  // (budget, sanity, credibility, …) — rewards and option costs apply there.
+  const applyResourceDelta = (delta: number) => {
+    const resourceId = config.metrics[0]?.id;
+    if (!resourceId) return;
+    setMetricsState(prev => ({ ...prev, [resourceId]: Math.max(0, (prev[resourceId] ?? 0) + delta) }));
+  };
+
+  const resolveMissionOption = (missionId: string, option: MissionOption) => {
+    const reward = missions.find(m => m.id === missionId)?.missionRewardBudget || 0;
+    applyResourceDelta(option.budgetEffect + reward);
+    setMissions(prev => prev.map(m => m.id === missionId ? { ...m, missionCompleted: true, missionAccepted: false, status: 'completed' as const } : m));
+    addLog(option.outcomeText, option.riskEffect <= 0 ? 'success' : 'warning');
+  };
+
+  const sendAdvisorMessage = async () => {
+    if (!activeAdvisor || !advisorInput.trim() || advisorLoading) return;
+    const advisor = activeAdvisor;
+    const message = advisorInput.trim();
+    setAdvisorInput('');
+    setAdvisorThreads(prev => ({ ...prev, [advisor.id]: [...(prev[advisor.id] || []), { from: 'player', text: message }] }));
+    setAdvisorLoading(true);
+    try {
+      const res = await fetch('/api/ai/advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          advisor: { name: advisor.name, role: advisor.role },
+          careerName: config.name,
+          userMessage: message,
+          metrics: metricsState
+        })
+      });
+      const data = await res.json();
+      setAdvisorThreads(prev => ({ ...prev, [advisor.id]: [...(prev[advisor.id] || []), { from: 'advisor', text: data.text || 'No response received.' }] }));
+    } catch {
+      setAdvisorThreads(prev => ({ ...prev, [advisor.id]: [...(prev[advisor.id] || []), { from: 'advisor', text: '📡 Connection lost. The channel is temporarily unreachable.' }] }));
+    } finally {
+      setAdvisorLoading(false);
+    }
+  };
+
+  const requestDirectives = async () => {
+    if (generatingMissions) return;
+    setGeneratingMissions(true);
+    addLog('Requesting new directives from management...', 'info');
+    try {
+      const res = await fetch('/api/ai/generate-mission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ careerName: config.name, metrics: metricsState })
+      });
+      const incoming = await res.json();
+      if (Array.isArray(incoming) && incoming.length > 0) {
+        const mapped: Mission[] = incoming.map((m: any, idx: number) => ({
+          id: m.id || `gen_${Date.now()}_${idx}`,
+          careerId: config.id,
+          sender: `${m.sender || 'Management'} <${(m.senderRole || 'hq').toLowerCase().replace(/\s+/g, '.')}@corp.local>`,
+          subject: m.subject || 'New Directive',
+          content: m.content || '',
+          status: 'unread' as const,
+          timestamp: m.receivedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          objective: undefined,
+          missionRewardBudget: m.missionRewardBudget,
+          options: Array.isArray(m.options) ? m.options : undefined
+        }));
+        setMissions(prev => [...mapped, ...prev]);
+        addLog(`${mapped.length} new transmission(s) received.`, 'success');
+      }
+    } catch {
+      addLog('Failed to reach management. Directive channel offline.', 'error');
+    } finally {
+      setGeneratingMissions(false);
+    }
+  };
+
   const activeMissions = missions.filter(m => m.missionAccepted && !m.missionCompleted);
 
   const renderWorkspace = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardWorkspace config={config} type={config.id} activeMissions={activeMissions} />;
-      case 'emails': return <InboxWorkspace config={config} missions={missions} setMissions={setMissions} acceptMission={acceptMission} completeMission={completeMission} />;
-      case 'inbox': return <InboxWorkspace config={config} missions={missions} setMissions={setMissions} acceptMission={acceptMission} completeMission={completeMission} />;
+      case 'emails':
+      case 'inbox':
+        return <InboxWorkspace config={config} missions={missions} setMissions={setMissions} acceptMission={acceptMission} completeMission={completeMission} resolveOption={resolveMissionOption} onRequestDirectives={requestDirectives} generating={generatingMissions} />;
       case 'cli': return <CliWorkspace careerId={config.id} />;
       case 'topology': return <TopologyWorkspace />;
       case 'editor': return <EditorWorkspace config={config} />;
       case 'terminal': return config.id === 'investment-manager' ? <StockCandlestickWorkspace /> : <TerminalFeedWorkspace config={config} />;
-      case 'sql': return <SqlWorkspace />;
+      case 'sql': return <SqlWorkspace careerId={config.id} />;
       case 'dag': return <DagViewerWorkspace config={config} />;
       case 'tickets': return config.id === 'spy-manager' ? <FieldIntelWorkspace config={config} /> : <TicketingWorkspace config={config} />;
       case 'desk': return <TradeDeskWorkspace config={config} />;
@@ -323,7 +408,7 @@ export default function SimWrapper() {
 
     switch (config.layoutType) {
       case 'cli': return <CliWorkspace />;
-      case 'sql': return <SqlWorkspace />;
+      case 'sql': return <SqlWorkspace careerId={config.id} />;
       case 'editor': return <EditorWorkspace config={config} />;
       case 'ticketing': return config.id === 'spy-manager' ? <FieldIntelWorkspace config={config} /> : <TicketingWorkspace config={config} />;
       case 'dag_viewer': return <DagViewerWorkspace config={config} />;
@@ -357,14 +442,14 @@ export default function SimWrapper() {
             </div>
             <div className="flex flex-col">
               <h1 className="text-[14px] lg:text-[16px] font-semibold tracking-tight text-zinc-50 truncate">
-                {config.name} <span className="text-zinc-500 font-normal ml-1 text-[11px] lg:text-sm">Workstation v2.1</span>
+                {config.name} <span className="hidden sm:inline text-zinc-500 font-normal ml-1 text-[11px] lg:text-sm">Workstation v2.1</span>
               </h1>
               <span className="text-[10px] text-emerald-400 font-mono font-bold tracking-widest uppercase flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> SIMULATION ACTIVE</span>
             </div>
           </div>
           
           <div className="flex items-center gap-3 md:gap-5 lg:gap-8">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+            <div className="hidden md:grid grid-cols-2 gap-x-6 gap-y-0.5">
               {config.metrics.map(metric => (
                  <React.Fragment key={metric.id}>
                     <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest leading-none col-start-1">{metric.name}</span>
@@ -383,7 +468,14 @@ export default function SimWrapper() {
               <h2 className="text-[12px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-4">Active Stakeholders</h2>
               <div className="space-y-2">
                 {tooling.stakeholders.map(per => (
-                  <div key={per.id} className="w-full flex items-center gap-3 p-2.5 rounded-[16px] bg-white/5 border border-white/5 text-left transition-all hover:bg-white/10 cursor-default shadow-sm">
+                  <button
+                    key={per.id}
+                    onClick={() => setActiveAdvisor(per)}
+                    aria-label={`Open chat with ${per.name}, ${per.role}`}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-[16px] border text-left transition-all cursor-pointer shadow-sm ${
+                      activeAdvisor?.id === per.id ? 'bg-indigo-600/20 border-indigo-500/40' : 'bg-white/5 border-white/5 hover:bg-white/10'
+                    }`}
+                  >
                     <div className="w-10 h-10 rounded-full bg-black/40 border border-white/5 flex items-center justify-center text-lg shadow-inner">
                       {per.avatar}
                     </div>
@@ -391,7 +483,8 @@ export default function SimWrapper() {
                       <p className="text-[13px] font-bold truncate text-zinc-200">{per.name}</p>
                       <p className="text-[11px] font-mono tracking-wide truncate text-zinc-500">{per.role}</p>
                     </div>
-                  </div>
+                    <MessageSquare className="w-4 h-4 text-zinc-500 shrink-0" />
+                  </button>
                 ))}
               </div>
             </div>
@@ -420,7 +513,7 @@ export default function SimWrapper() {
                     onClick={() => setActiveTab(tab.id)}
                     aria-label={tab.label}
                     aria-current={activeTab === tab.id ? 'page' : undefined}
-                    className={`relative px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`relative px-3 py-2.5 sm:py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-none ${
                       activeTab === tab.id ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)] border border-indigo-500/50' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/10 border border-transparent'
                     }`}
                   >
@@ -482,6 +575,20 @@ export default function SimWrapper() {
           </aside>
         </main>
       </div>
+
+      <AnimatePresence>
+        {activeAdvisor && (
+          <AdvisorChat
+            advisor={activeAdvisor}
+            thread={advisorThreads[activeAdvisor.id] || []}
+            loading={advisorLoading}
+            input={advisorInput}
+            onInputChange={setAdvisorInput}
+            onSend={sendAdvisorMessage}
+            onClose={() => setActiveAdvisor(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
