@@ -1,236 +1,216 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Briefcase, Terminal, Database, Rss, Layers, Lock, Unlock, ArrowRight, LogIn, PenTool, TrendingUp, GitMerge, LifeBuoy } from 'lucide-react';
+import { Shield, Terminal, Database, Layers, Lock, ArrowRight, LogIn, PenTool, TrendingUp, GitMerge, LifeBuoy, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { CAREER_MAP } from '../lib/career-config';
 
+interface CareerTheme {
+  icon: React.ElementType;
+  tile: string;   // icon tile gradient (static classes for Tailwind JIT)
+  blob: string;   // ambient glow color behind the card
+  blurb: string;
+}
+
+const THEME: Record<string, CareerTheme> = {
+  'cyber-architect': { icon: Shield, tile: 'from-blue-500 to-indigo-600', blob: 'bg-indigo-500/40', blurb: 'Defend the org from breaches, calm nervous execs, and patch the holes before the headlines hit.' },
+  'copywriter': { icon: PenTool, tile: 'from-fuchsia-500 to-pink-500', blob: 'bg-fuchsia-500/40', blurb: "Turn vague feedback into 'synergistic' gold while the client rejects everything but the typos." },
+  'economist': { icon: TrendingUp, tile: 'from-emerald-400 to-teal-500', blob: 'bg-emerald-500/40', blurb: 'Forecast the unforecastable — confident enough to trend, hedged enough to survive.' },
+  'data-analyst': { icon: Database, tile: 'from-violet-500 to-purple-600', blob: 'bg-violet-500/40', blurb: 'Wrangle messy SQL into dashboards leadership will misread exactly the way they wanted.' },
+  'data-engineer': { icon: GitMerge, tile: 'from-cyan-400 to-sky-500', blob: 'bg-cyan-500/40', blurb: "Keep the pipelines alive at 3 AM and explain why the data is 'just late, not wrong.'" },
+  'sysadmin': { icon: LifeBuoy, tile: 'from-amber-400 to-orange-500', blob: 'bg-amber-500/40', blurb: 'Resolve impossible tickets, reset the same password forever, and make the printer work by sheer will.' },
+  'investment-manager': { icon: TrendingUp, tile: 'from-amber-400 to-orange-600', blob: 'bg-orange-500/40', blurb: "Move other people's millions, dodge the risk committee, and call it 'conviction.'" },
+  'crypto-laundry': { icon: GitMerge, tile: 'from-rose-500 to-pink-600', blob: 'bg-rose-500/40', blurb: 'Keep the funds flowing and the heat low across a maze of mixers and shell wallets.' },
+  'cyber-activist': { icon: Terminal, tile: 'from-fuchsia-500 to-rose-600', blob: 'bg-fuchsia-500/40', blurb: 'Run the botnet, footprint the target, and drop the leak before legal wakes up.' },
+  'spy-manager': { icon: Shield, tile: 'from-orange-400 to-rose-600', blob: 'bg-orange-500/40', blurb: "Run assets across the globe, burn what's compromised, and bring everyone home." }
+};
+
+const FALLBACK: CareerTheme = { icon: Terminal, tile: 'from-slate-500 to-slate-700', blob: 'bg-slate-500/40', blurb: 'Step into a high-pressure career and survive the chaos.' };
+
+const spring = { type: 'spring', stiffness: 320, damping: 26 } as const;
+
 export default function LandingPage() {
-  const isAuthenticated = localStorage.getItem("sim_user_auth") === "true";
+  const isAuthenticated = localStorage.getItem('sim_user_auth') === 'true';
   const navigate = useNavigate();
 
   const handleEnterSim = (careerId: string) => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    } else {
-      navigate(`/sim/${careerId}`);
-    }
+    navigate(isAuthenticated ? `/sim/${careerId}` : '/login');
   };
 
   const careers = Object.values(CAREER_MAP);
 
-  return (
-    <div className="min-h-screen bg-[#020617] text-slate-300 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
-      {/* Background gradients and spots */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full mix-blend-screen" />
-        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-teal-500/10 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] bg-rose-500/10 blur-[180px] rounded-full mix-blend-screen" />
-      </div>
-      
-      {/* Header */}
-      <header className="h-20 px-6 sm:px-8 border-b border-white/5 bg-[#020617]/50 backdrop-blur-2xl flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-            <Layers className="w-5 h-5 text-white" />
+  const renderCard = (career: typeof careers[number], premium: boolean, delay: number) => {
+    const theme = THEME[career.id] || FALLBACK;
+    const Icon = theme.icon;
+    return (
+      <motion.button
+        key={career.id}
+        type="button"
+        onClick={() => handleEnterSim(career.id)}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, ...spring }}
+        whileHover={{ y: -6 }}
+        whileTap={{ scale: 0.985 }}
+        aria-label={`Enter the ${career.name} simulation`}
+        className="group relative flex flex-col text-left rounded-[28px] p-6 bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 hover:ring-white/20 shadow-[0_16px_50px_-20px_rgba(0,0,0,0.8)] overflow-hidden cursor-pointer transition-[box-shadow,background-color] hover:bg-white/[0.06]"
+      >
+        {/* Ambient accent glow + top sheen */}
+        <div className={`pointer-events-none absolute -top-20 -right-12 w-48 h-48 rounded-full blur-3xl opacity-25 group-hover:opacity-60 transition-opacity duration-500 ${theme.blob}`} />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+        <div className="relative flex items-start justify-between mb-5">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${theme.tile} text-white shadow-lg shadow-black/30 ring-1 ring-white/20 group-hover:scale-105 transition-transform`}>
+            <Icon className="w-6 h-6" />
           </div>
-          <span className="text-[17px] font-bold text-white tracking-wide">CrushLoad</span>
-        </div>
-        <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-             <div className="flex items-center gap-4">
-               <Link to="/profile" className="text-sm font-medium text-slate-400 hover:text-white transition">My Profile</Link>
-               <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-sm font-medium text-slate-400 hover:text-rose-400 transition cursor-pointer">Disconnect</button>
-             </div>
+          {premium ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-200/90 bg-white/5 ring-1 ring-white/10 px-2.5 py-1 rounded-full">
+              <Lock className="w-3 h-3" /> Premium
+            </span>
           ) : (
-            <Link to="/login" className="flex items-center gap-2 text-[14px] font-bold bg-white text-black hover:bg-slate-200 px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] transition">
-              <LogIn className="w-4 h-4" /> Agent Login
-            </Link>
+            <span className="text-[11px] font-semibold text-emerald-200/90 bg-white/5 ring-1 ring-white/10 px-2.5 py-1 rounded-full">
+              Free
+            </span>
           )}
+        </div>
+
+        <h3 className="relative text-[19px] font-semibold text-white tracking-tight mb-2">{career.name}</h3>
+        <p className="relative text-[13.5px] text-slate-400 leading-relaxed mb-6 flex-1">{theme.blurb}</p>
+
+        <div className="relative w-full rounded-2xl p-4 bg-black/20 ring-1 ring-white/[0.06] mb-5">
+          <h4 className="text-[10px] font-semibold tracking-[0.18em] uppercase text-slate-500 mb-3">Starting Stats</h4>
+          <div className="flex flex-col gap-2">
+            {career.metrics.map(m => (
+              <div key={m.id} className="flex items-center justify-between text-[12px]">
+                <span className="text-slate-400">{m.name}</span>
+                <span className="text-slate-200 font-mono bg-white/[0.06] ring-1 ring-white/10 px-2 py-0.5 rounded-lg">{m.startValue.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative mt-auto w-full flex items-center justify-between rounded-2xl px-5 py-3 bg-white/[0.06] group-hover:bg-white/[0.12] ring-1 ring-white/10 transition-colors">
+          <span className="text-[13px] font-semibold text-white">{isAuthenticated ? 'Enter simulation' : 'Sign in to play'}</span>
+          <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
+        </div>
+      </motion.button>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#05070f] text-slate-300 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
+      {/* Layered ambient light field */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] bg-indigo-600/25 blur-[140px] rounded-full" />
+        <div className="absolute top-[10%] right-[-15%] w-[55%] h-[55%] bg-violet-600/15 blur-[160px] rounded-full" />
+        <div className="absolute top-[35%] left-[25%] w-[50%] h-[50%] bg-teal-500/10 blur-[170px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[10%] w-[55%] h-[55%] bg-fuchsia-600/10 blur-[180px] rounded-full" />
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 px-4 sm:px-8 pt-4">
+        <div className="max-w-7xl mx-auto h-16 px-4 sm:px-5 flex items-center justify-between bg-white/[0.05] backdrop-blur-2xl ring-1 ring-white/10 rounded-[20px] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-1 ring-white/20">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[17px] font-semibold text-white tracking-tight">CrushLoad</span>
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="text-sm font-medium text-slate-300 hover:text-white transition px-3 py-2 rounded-xl hover:bg-white/5">My Profile</Link>
+                <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-sm font-medium text-slate-400 hover:text-rose-300 transition cursor-pointer px-3 py-2 rounded-xl hover:bg-white/5">Sign out</button>
+              </>
+            ) : (
+              <Link to="/login" className="flex items-center gap-2 text-[14px] font-semibold bg-white text-slate-900 hover:bg-white/90 px-5 py-2.5 rounded-2xl shadow-lg shadow-black/20 transition">
+                <LogIn className="w-4 h-4" /> Sign in
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
-         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-16 text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold tracking-widest uppercase mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-              Immersive Simulations
-            </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
-              Experience the Reality of <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-teal-400">Corporate Chaos</span>
-            </h1>
-            <p className="text-base md:text-lg text-slate-400 leading-relaxed">
-              CrushLoad trains you for modern tech and corporate careers by subjecting you to the exact soul-crushing scenarios you'll face on the job. No theory, just pure stress.
-            </p>
-         </motion.div>
+      {/* Main */}
+      <main className="flex-1 relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={spring} className="mb-16 lg:mb-20 text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 ring-1 ring-white/10 text-indigo-200 text-[11px] font-semibold tracking-wide mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+            Immersive career simulations
+          </div>
+          <h1 className="text-4xl md:text-6xl font-semibold text-white tracking-tight leading-[1.05] mb-5">
+            Experience the reality of{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-teal-300">corporate chaos</span>
+          </h1>
+          <p className="text-base md:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            Step into modern tech and corporate careers and live the exact, gloriously stressful scenarios you'd face on the job. Pick a role and dive in.
+          </p>
+        </motion.div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
-            {careers.filter(c => c.tier === 'free').map((career, i) => {
-              const iconMap: Record<string, any> = {
-                 'cyber-architect': Shield,
-                 'copywriter': PenTool,
-                 'economist': TrendingUp,
-                 'data-analyst': Database,
-                 'data-engineer': GitMerge,
-                 'sysadmin': LifeBuoy
-              };
-              const Icon = iconMap[career.id] || Terminal;
-              
-              return (
-                <motion.div 
-                  key={career.id} 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: i * 0.1 }}
-                  className="group bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 p-6 flex flex-col items-start rounded-2xl cursor-pointer hover:bg-white/[0.05] transition-all relative overflow-hidden shadow-xl"
-                  onClick={() => handleEnterSim(career.id)}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="flex justify-between w-full items-start mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-white group-hover:scale-110 group-hover:bg-indigo-500 group-hover:border-indigo-400 transition-all shadow-md`}>
-                       <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-mono tracking-widest text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">FREE TRACK</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{career.name}</h3>
-                  <p className="text-xs text-slate-400 mb-6 leading-relaxed flex-1">
-                     Experience the high-pressure stakes of being a {career.name.toLowerCase()} in an aggressive corporate structure. You will manage stakeholders, process critical data loops, and push past burnout.
-                  </p>
-                  
-                  <div className="w-full bg-black/40 rounded-xl p-3 border border-white/5 mb-6">
-                     <h4 className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-2">Initial Parameters</h4>
-                     <div className="flex flex-col gap-1.5 w-full">
-                        {career.metrics.map(m => (
-                           <div key={m.id} className="flex items-center justify-between text-[11px]">
-                             <span className="text-slate-400 font-medium">{m.name}</span>
-                             <span className="text-slate-300 font-mono bg-white/5 px-1.5 py-0.5 rounded">{m.startValue}</span>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-                  
-                  <div className="mt-auto w-full group-hover:mt-auto relative z-10">
-                     <div className="w-full bg-white/5 group-hover:bg-indigo-600 border border-white/10 group-hover:border-indigo-500 text-center py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-md flex items-center justify-center gap-2">
-                        Enter Simulation <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-         </div>
+        {/* Free tier */}
+        <div className="flex items-center gap-3 mb-6 px-1">
+          <h2 className="text-sm font-semibold tracking-tight text-white">Free tracks</h2>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
+          {careers.filter(c => c.tier === 'free').map((career, i) => renderCard(career, false, i * 0.06))}
+        </div>
 
-         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mb-10 text-center max-w-3xl mx-auto pt-10 border-t border-white/5">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold tracking-widest uppercase mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-              CrushLoad Premium
-            </div>
-            <h2 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
-              The <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-orange-400 to-amber-400">Shadow Tracks</span>
-            </h2>
-            <p className="text-base md:text-lg text-slate-400 leading-relaxed">
-              High-stakes, illicit, or adrenaline-fueled scenarios. Only for subscribers looking for the ultimate risk exposure.
-            </p>
-         </motion.div>
-
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {careers.filter(c => c.tier === 'paid').map((career, i) => {
-              const iconMap: Record<string, any> = {
-                 'investment-manager': TrendingUp,
-                 'crypto-laundry': GitMerge,
-                 'cyber-activist': Terminal,
-                 'spy-manager': Shield
-              };
-              const Icon = iconMap[career.id] || Lock;
-              
-              return (
-                <motion.div 
-                  key={career.id} 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: 0.6 + (i * 0.1) }}
-                  className="group bg-[#0a0505] backdrop-blur-xl border border-rose-500/20 hover:border-rose-500/50 p-6 flex flex-col items-start rounded-2xl cursor-pointer transition-all relative overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.05)] hover:shadow-[0_0_60px_rgba(244,63,94,0.15)]"
-                  onClick={() => handleEnterSim(career.id)}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="flex justify-between w-full items-start mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 text-rose-400 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-md`}>
-                       <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="text-rose-500/50 group-hover:text-rose-400 transition-colors">
-                       <Lock className="w-5 h-5" />
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-lg font-bold text-white mb-2">{career.name}</h3>
-                  <p className="text-xs text-slate-400 mb-6 leading-relaxed flex-1">
-                     Premium tier experience. Absorb the unrelenting stress of illicit activities, massive capital risk, and intense cyber warfare. Keep your sanity above zero, if you can.
-                  </p>
-                  
-                  <div className="w-full bg-black/60 rounded-xl p-3 border border-rose-500/10 mb-6">
-                     <h4 className="text-[10px] font-bold tracking-widest uppercase text-rose-500/70 mb-2">Risk Parameters</h4>
-                     <div className="flex flex-col gap-1.5 w-full">
-                        {career.metrics.map(m => (
-                           <div key={m.id} className="flex items-center justify-between text-[11px]">
-                             <span className="text-slate-400 font-medium">{m.name}</span>
-                             <span className="text-rose-200 font-mono bg-rose-500/10 px-1.5 py-0.5 rounded">{m.startValue}</span>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-                  
-                  <div className="mt-auto w-full group-hover:mt-auto relative z-10">
-                     <div className="w-full bg-rose-500/10 group-hover:bg-rose-600 border border-rose-500/20 group-hover:border-rose-500 text-center py-2.5 rounded-lg text-xs font-bold text-rose-300 group-hover:text-white transition-all shadow-md flex items-center justify-center gap-2">
-                        Unlock Premium <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-         </div>
+        {/* Premium tier */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={spring} className="mb-10 text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 ring-1 ring-white/10 text-amber-200/90 text-[11px] font-semibold tracking-wide mb-5">
+            <Lock className="w-3 h-3" /> CrushLoad Premium
+          </div>
+          <h2 className="text-3xl md:text-4xl font-semibold text-white tracking-tight leading-tight mb-4">
+            The <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-fuchsia-300">Shadow Tracks</span>
+          </h2>
+          <p className="text-base text-slate-400 leading-relaxed">
+            High-stakes, off-the-books, adrenaline-fueled scenarios — for subscribers who want the wild side. (All fictional, all satire.)
+          </p>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {careers.filter(c => c.tier === 'paid').map((career, i) => renderCard(career, true, i * 0.06))}
+        </div>
       </main>
 
-      {/* Corporate Footer */}
-      <footer className="relative z-10 border-t border-white/5 bg-[#020617]/80 backdrop-blur-xl py-12 mt-auto">
-         <div className="max-w-7xl mx-auto px-6 sm:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="col-span-2 md:col-span-1">
-               <div className="flex items-center gap-2 mb-4">
-                 <div className="w-6 h-6 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                   <Layers className="w-3 h-3 text-white" />
-                 </div>
-                 <span className="text-[14px] font-bold text-white">CrushLoad</span>
-               </div>
-               <p className="text-xs text-slate-500 leading-relaxed">
-                 Preparing the next generation of knowledge workers for inevitable burnout through highly realistic crisis modeling.
-               </p>
+      {/* Footer */}
+      <footer className="relative z-10 mt-auto px-4 sm:px-6 pb-8">
+        <div className="max-w-7xl mx-auto rounded-[28px] bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 p-8 sm:p-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="col-span-2 md:col-span-2">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center ring-1 ring-white/20">
+                  <Layers className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-[15px] font-semibold text-white">CrushLoad</span>
+              </div>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+                Friendly, slightly unhinged career simulations. Learn what a job actually feels like — minus the real-world consequences.
+              </p>
             </div>
-            
             <div>
-               <h4 className="text-white font-bold text-sm mb-4">Platform</h4>
-               <ul className="space-y-2 text-sm text-slate-500">
-                  <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
-                  <li><Link to="/sitemap" className="hover:text-white transition">Site Map</Link></li>
-               </ul>
+              <h4 className="text-white font-semibold text-sm mb-4">Explore</h4>
+              <ul className="space-y-2.5 text-sm text-slate-400">
+                <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition cursor-pointer">Browse careers</button></li>
+                <li><Link to={isAuthenticated ? '/profile' : '/login'} className="hover:text-white transition">{isAuthenticated ? 'My profile' : 'Sign in'}</Link></li>
+              </ul>
             </div>
-
             <div>
-               <h4 className="text-white font-bold text-sm mb-4">Legal & Compliance</h4>
-               <ul className="space-y-2 text-sm text-slate-500">
-                  <li><Link to="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
-                  <li><Link to="/terms" className="hover:text-white transition">Terms of Service</Link></li>
-                  <li><Link to="/compliance" className="hover:text-white transition">Compliance Center</Link></li>
-                  <li><Link to="/acceptable-use" className="hover:text-white transition">Acceptable Use</Link></li>
-               </ul>
+              <h4 className="text-white font-semibold text-sm mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-sm text-slate-400">
+                <li><Link to="/privacy" className="hover:text-white transition">Privacy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition">Terms</Link></li>
+                <li><Link to="/acceptable-use" className="hover:text-white transition">Acceptable use</Link></li>
+              </ul>
             </div>
-         </div>
-         <div className="max-w-7xl mx-auto px-6 sm:px-8 mt-12 pt-8 border-t border-white/5 text-xs text-slate-600 flex flex-col md:flex-row items-center justify-between">
-            <p>© {new Date().getFullYear()} CrushLoad Inc. All rights reserved.</p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-               <span>v2.4.9</span>
-               <span>All scenarios are fictional satire</span>
+          </div>
+          <div className="mt-10 pt-6 border-t border-white/10 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>© {new Date().getFullYear()} CrushLoad. Made for fun.</p>
+            <div className="flex gap-4">
+              <span>v2.4.9</span>
+              <span>All scenarios are fictional satire</span>
             </div>
-         </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

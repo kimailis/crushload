@@ -1,72 +1,139 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, ShieldCheck, Cpu, HardDrive } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, User, ShieldCheck, Cpu, HardDrive, Sparkles, Trophy, Flame, Layers } from 'lucide-react';
+import { motion } from 'motion/react';
+
+const spring = { type: 'spring', stiffness: 320, damping: 26 } as const;
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300 font-sans p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
-         <button onClick={() => navigate('/')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition cursor-pointer mb-8">
-            <ArrowLeft className="w-4 h-4" /> Back
-         </button>
-         
-         <div className="flex items-center gap-4 mb-10">
-            <div className="w-20 h-20 rounded-2xl bg-[#111] border border-white/10 flex items-center justify-center">
-              <User className="w-8 h-8 text-emerald-400" />
-            </div>
-            <div>
-               <h1 className="text-3xl font-bold text-white">Agent Profile</h1>
-               <p className="text-zinc-400 flex items-center gap-2 mt-1"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Clearance Level: Top Secret</p>
-            </div>
-         </div>
+    <div className="min-h-screen bg-[#05070f] text-slate-300 font-sans relative overflow-hidden">
+      {/* Ambient light field */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[55%] h-[55%] bg-indigo-600/25 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-600/15 blur-[160px] rounded-full" />
+        <div className="absolute top-[40%] right-[20%] w-[40%] h-[40%] bg-teal-500/10 blur-[150px] rounded-full" />
+      </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl p-6">
-               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Personal Details</h3>
-               <div className="space-y-4">
-                  <div className="flex flex-col gap-1.5">
-                     <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Email</span>
-                     <span className="text-[14px] text-zinc-200 bg-[#111] px-4 py-2.5 rounded-xl border border-white/5">agent@crushload.net</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                     <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Employee ID</span>
-                     <span className="text-[14px] text-zinc-200 bg-[#111] px-4 py-2.5 rounded-xl border border-white/5 font-mono">CL-4092-B</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
-                     <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Stress Tolerance</span>
-                     <div className="w-full h-3 bg-[#111] rounded-full overflow-hidden mt-1">
-                        <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500 w-[65%]"></div>
-                     </div>
-                  </div>
-               </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition cursor-pointer mb-8 px-4 py-2 rounded-2xl bg-white/[0.05] backdrop-blur-xl ring-1 ring-white/10 hover:bg-white/[0.08]"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to careers
+        </button>
+
+        {/* Identity card */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={spring}
+          className="relative rounded-[28px] bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 p-6 sm:p-8 mb-6 overflow-hidden shadow-[0_16px_50px_-20px_rgba(0,0,0,0.8)]"
+        >
+          <div className="pointer-events-none absolute -top-24 -right-16 w-64 h-64 rounded-full blur-3xl bg-indigo-500/30" />
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
+            <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-1 ring-white/20 shrink-0">
+              <User className="w-9 h-9 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-1.5">Agent Profile</h1>
+              <p className="text-slate-400 flex items-center gap-2 text-sm">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> Clearance: Top Secret
+              </p>
+            </div>
+            <div className="flex sm:flex-col gap-2 sm:text-right">
+              <span className="text-[11px] font-mono text-slate-400 bg-white/[0.06] ring-1 ring-white/10 px-3 py-1.5 rounded-full">CL-4092-B</span>
+              <span className="text-[11px] font-medium text-emerald-300 bg-emerald-500/10 ring-1 ring-emerald-500/20 px-3 py-1.5 rounded-full">Active</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Details */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, ...spring }}
+            className="rounded-[28px] bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 p-6 sm:p-7"
+          >
+            <h3 className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.18em] mb-5 flex items-center gap-2">
+              <User className="w-4 h-4" /> Personal Details
+            </h3>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">Email</span>
+                <span className="text-[14px] text-slate-200 bg-black/20 px-4 py-3 rounded-2xl ring-1 ring-white/[0.06]">agent@crushload.net</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">Employee ID</span>
+                <span className="text-[14px] text-slate-200 bg-black/20 px-4 py-3 rounded-2xl ring-1 ring-white/[0.06] font-mono">CL-4092-B</span>
+              </div>
+              <div className="flex flex-col gap-2 pt-3 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest flex items-center gap-1.5"><Flame className="w-3.5 h-3.5 text-amber-400" /> Stress Tolerance</span>
+                  <span className="text-[12px] font-mono text-slate-300">65%</span>
+                </div>
+                <div className="w-full h-2.5 bg-black/30 rounded-full overflow-hidden ring-1 ring-white/[0.06]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: '65%' }}
+                    transition={{ delay: 0.4, duration: 0.8, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-amber-400 rounded-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Stats + subscription */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16, ...spring }}
+            className="rounded-[28px] bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 p-6 sm:p-7 flex flex-col"
+          >
+            <h3 className="text-[12px] font-semibold text-slate-400 uppercase tracking-[0.18em] mb-5 flex items-center gap-2">
+              <Trophy className="w-4 h-4" /> Training Stats
+            </h3>
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              <div className="bg-black/20 ring-1 ring-white/[0.06] p-4 rounded-2xl flex flex-col gap-1">
+                <Cpu className="w-4 h-4 text-indigo-300 mb-1" />
+                <span className="text-2xl font-semibold text-white tracking-tight">14</span>
+                <span className="text-[11px] text-slate-500 font-medium">Scenarios completed</span>
+              </div>
+              <div className="bg-black/20 ring-1 ring-white/[0.06] p-4 rounded-2xl flex flex-col gap-1">
+                <HardDrive className="w-4 h-4 text-teal-300 mb-1" />
+                <span className="text-2xl font-semibold text-white tracking-tight">42h</span>
+                <span className="text-[11px] text-slate-500 font-medium">Hours simulated</span>
+              </div>
             </div>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl p-6 flex flex-col">
-               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Cpu className="w-4 h-4" /> Training Stats</h3>
-               <div className="space-y-4 flex-1">
-                  <div className="flex justify-between items-center bg-[#111] p-3 rounded-2xl border border-white/5">
-                     <span className="text-[13px] flex items-center gap-2"><Cpu className="w-4 h-4 text-zinc-500"/> Scenarios Completed</span>
-                     <span className="text-white font-mono font-bold">14</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-[#111] p-3 rounded-2xl border border-white/5">
-                     <span className="text-[13px] flex items-center gap-2"><HardDrive className="w-4 h-4 text-zinc-500"/> Total Hours Simulated</span>
-                     <span className="text-white font-mono font-bold">42h</span>
-                  </div>
-               </div>
-
-               <div className="mt-8 pt-6 border-t border-white/5">
-                  <h3 className="text-sm font-semibold text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">Subscription</h3>
-                  <div className="bg-rose-500/5 border border-rose-500/10 rounded-2xl p-4 mb-4">
-                     <p className="text-xs text-rose-200/70 mb-2">You are currently on the Free Track.</p>
-                     <p className="text-sm text-rose-200 font-medium">Unlock Shadow Tracks (Premium)</p>
-                  </div>
-                  <button className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition shadow-[0_0_20px_rgba(225,29,72,0.3)]">
-                     Upgrade to Premium
+            <div className="mt-6 pt-6 border-t border-white/[0.06]">
+              <div className="relative rounded-2xl p-5 overflow-hidden bg-gradient-to-br from-indigo-600/30 via-fuchsia-600/20 to-transparent ring-1 ring-white/10">
+                <div className="pointer-events-none absolute -top-10 -right-8 w-32 h-32 rounded-full blur-2xl bg-fuchsia-500/30" />
+                <div className="relative">
+                  <p className="text-[13px] font-semibold text-white mb-1 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-300" /> Unlock the Shadow Tracks
+                  </p>
+                  <p className="text-[12px] text-slate-300/80 leading-relaxed mb-4">
+                    You're on the free plan. Premium opens the high-stakes fictional roles.
+                  </p>
+                  <button className="w-full bg-white text-slate-900 hover:bg-white/90 font-semibold text-[13px] py-3 rounded-2xl transition cursor-pointer shadow-lg shadow-black/20">
+                    Upgrade to Premium
                   </button>
-               </div>
+                </div>
+              </div>
             </div>
-         </div>
+          </motion.div>
+        </div>
+
+        <p className="text-center text-[11px] text-slate-600 mt-10 flex items-center justify-center gap-1.5">
+          <Layers className="w-3 h-3" /> CrushLoad — all scenarios are fictional satire
+        </p>
       </div>
     </div>
   );
