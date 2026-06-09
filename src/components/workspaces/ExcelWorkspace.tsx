@@ -13,7 +13,7 @@ export default function ExcelWorkspace({ config }: { config: CareerConfig }) {
   ]);
 
   return (
-    <motion.div key="excel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-white text-zinc-800 font-sans border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative selection:bg-emerald-200">
+    <motion.div key="excel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-white text-zinc-800 font-sans border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative selection:bg-emerald-200">
       <div className="h-14 bg-emerald-700 flex items-center px-4 justify-between shrink-0 shadow-md z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center text-white">

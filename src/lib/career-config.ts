@@ -32,7 +32,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'free', 
     layoutType: 'terminal_feed',
     metrics: [{id: 'credibility', name: 'Credibility', startValue: 50, color: 'violet'}, {id: 'market', name: 'Market Sentiment', startValue: 50, color: 'amber'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'excel', label: 'Excel Sim', icon: 'Database'}, {id: 'terminal', label: 'Bloomberg Terminal', icon: 'TrendingUp'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'excel', label: 'Excel', icon: 'Database'}, {id: 'terminal', label: 'Bloomberg Terminal', icon: 'TrendingUp'}]
   },
   'data-analyst': {
     id: 'data-analyst',
@@ -40,7 +40,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'free', 
     layoutType: 'sql',
     metrics: [{id: 'compute', name: 'Query Cost', startValue: 5000, color: 'orange'}, {id: 'accuracy', name: 'Data Integrity', startValue: 100, color: 'emerald'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'sql', label: 'SQL IDE', icon: 'Database'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'sql', label: 'SQL IDE', icon: 'Database'}, {id: 'dashboards', label: 'Visual Analysis', icon: 'BarChart'}]
   },
   'data-engineer': {
     id: 'data-engineer',
@@ -48,7 +48,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'free', 
     layoutType: 'dag_viewer',
     metrics: [{id: 'uptime', name: 'Pipeline Uptime', startValue: 99, color: 'emerald'}, {id: 'tech_debt', name: 'Tech Debt', startValue: 80, color: 'rose'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'dag', label: 'Airflow DAGs', icon: 'GitMerge'}, {id: 'logs', label: 'Server Logs', icon: 'AlignLeft'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'dag', label: 'Airflow DAGs', icon: 'GitMerge'}, {id: 'sql', label: 'SQL Execution Bench', icon: 'Database'}]
   },
   'sysadmin': {
     id: 'sysadmin',
@@ -56,7 +56,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'free', 
     layoutType: 'ticketing',
     metrics: [{id: 'sla', name: 'SLA Breach %', startValue: 0, color: 'rose'}, {id: 'patience', name: 'Patience', startValue: 10, color: 'blue'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'tickets', label: 'ServiceNow', icon: 'LifeBuoy'}, {id: 'ad', label: 'Active Directory', icon: 'Users'}, {id: 'inventory', label: 'Asset Management', icon: 'Monitor'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'tickets', label: 'ServiceNow', icon: 'LifeBuoy'}, {id: 'ad', label: 'Active Directory', icon: 'Users'}, {id: 'cli', label: 'Router/Server CLI', icon: 'Terminal'}]
   },
   'investment-manager': {
     id: 'investment-manager',
@@ -64,7 +64,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'paid',
     layoutType: 'terminal_feed',
     metrics: [{id: 'aum', name: 'AUM ($M)', startValue: 500, color: 'emerald'}, {id: 'risk', name: 'Risk Exposure', startValue: 85, color: 'rose'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'terminal', label: 'Bloomberg Feed', icon: 'TrendingUp'}, {id: 'desk', label: 'Trade Desk', icon: 'Activity'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'terminal', label: 'Stocks & Visuals', icon: 'TrendingUp'}, {id: 'desk', label: 'Asset Analysis', icon: 'BarChart3'}]
   },
   'crypto-laundry': {
     id: 'crypto-laundry',
@@ -88,6 +88,6 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'paid',
     layoutType: 'ticketing',
     metrics: [{id: 'intel', name: 'Intel Value', startValue: 90, color: 'emerald'}, {id: 'cover', name: 'Blown Covers', startValue: 2, color: 'rose'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'tickets', label: 'Field Reports', icon: 'LifeBuoy'}, {id: 'map', label: 'Global Assets', icon: 'Map'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'tickets', label: 'Field Intel', icon: 'ShieldAlert'}, {id: 'map', label: 'Global Assets', icon: 'Map'}]
   }
 };

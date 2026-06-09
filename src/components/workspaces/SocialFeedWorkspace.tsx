@@ -34,7 +34,7 @@ export default function SocialFeedWorkspace({ config }: { config: CareerConfig }
   };
 
   return (
-    <motion.div key="social" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:flex-row lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-[#15202b] text-white font-sans border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative">
+    <motion.div key="social" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:flex-row h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-[#15202b] text-white font-sans border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative">
       <div className="w-[280px] hidden lg:flex flex-col border-r border-[#38444d] p-4 shrink-0">
          <div className="w-12 h-12 rounded-full bg-indigo-500 mb-6 flex items-center justify-center font-bold text-xl shadow-lg">
            {config.name.charAt(0)}

@@ -326,9 +326,10 @@ export default function CyberSecSim() {
               })}
             </div>
 
-            <AnimatePresence mode="wait">
-              {activeTab === 'dashboard' && (
-                <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+            <div className="flex-1 w-full flex flex-col" style={{ zoom: 0.85 }}>
+              <AnimatePresence mode="wait">
+                {activeTab === 'dashboard' && (
+                  <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white/5 border border-white/5 backdrop-blur-2xl shadow-2xl rounded-[28px] p-6">
                       <h2 className="text-lg font-semibold text-zinc-50 flex items-center gap-3 mb-4"><ActivityIcon className="text-indigo-400 w-5 h-5" /> Threat Landscape</h2>
@@ -392,10 +393,10 @@ export default function CyberSecSim() {
               )}
 
               {activeTab === 'emails' && (
-                <motion.div key="emails" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:flex-row lg:h-[75vh] lg:min-h-[600px] overflow-hidden bg-white/5 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl">
-                  <div className="w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-slate-900/40 h-[250px] lg:h-full">
-                    <div className="p-4 lg:p-5 border-b border-white/5 shrink-0"><h2 className="text-lg font-semibold text-zinc-50 flex items-center gap-2"><Mail className="w-5 h-5 text-indigo-400" /> Inbox</h2></div>
-                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 p-2 space-y-1">
+                <motion.div key="emails" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-row h-[600px] lg:h-[75vh] lg:min-h-[600px] overflow-hidden bg-white/5 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl">
+                  <div className="w-[180px] sm:w-[280px] md:w-[320px] shrink-0 border-r border-white/5 flex flex-col bg-slate-900/40 h-full">
+                    <div className="p-3 sm:p-5 border-b border-white/5 shrink-0"><h2 className="text-[13px] sm:text-base lg:text-lg font-semibold text-zinc-50 flex items-center gap-1.5 sm:gap-2"><Mail className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" /> Inbox</h2></div>
+                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 p-1.5 sm:p-2 space-y-1">
                       {emails.map(mail => {
                         const isSelected = selectedEmail?.id === mail.id;
                         return (
@@ -405,34 +406,34 @@ export default function CyberSecSim() {
                               setSelectedEmail(mail);
                               if (!mail.isRead) setEmails(prev => prev.map(e => e.id === mail.id ? { ...e, isRead: true } : e));
                             }}
-                            className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer relative ${isSelected ? 'bg-indigo-600 shadow-md text-white' : 'hover:bg-white/5 text-zinc-300'}`}
+                            className={`w-full text-left p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all cursor-pointer relative ${isSelected ? 'bg-indigo-600 shadow-md text-white' : 'hover:bg-white/5 text-zinc-300'}`}
                           >
-                            {!mail.isRead && !isSelected && <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>}
-                            <div className="flex items-center gap-3 mb-1.5">
-                              <span className="text-xl">{mail.senderAvatar}</span>
-                              <span className={`text-[14px] leading-none ${isSelected ? 'font-bold' : 'font-medium'} ${!mail.isRead && !isSelected ? 'text-zinc-50 font-bold' : ''}`}>{mail.sender}</span>
+                            {!mail.isRead && !isSelected && <span className="absolute top-3 right-3 sm:top-4 sm:right-4 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-indigo-500 rounded-full"></span>}
+                            <div className="flex items-center gap-1.5 sm:gap-3 mb-1 sm:mb-1.5">
+                              <span className="text-base sm:text-xl">{mail.senderAvatar}</span>
+                              <span className={`text-[12px] sm:text-[14px] leading-none ${isSelected ? 'font-bold' : 'font-medium'} ${!mail.isRead && !isSelected ? 'text-zinc-50 font-bold' : ''} truncate flex-1`}>{mail.sender}</span>
                             </div>
-                            <span className={`text-[13px] block truncate pl-[32px] ${!mail.isRead && !isSelected ? 'text-zinc-100 font-semibold' : 'opacity-80'}`}>{mail.subject}</span>
+                            <span className={`text-[11px] sm:text-[13px] block truncate pl-5 sm:pl-[32px] ${!mail.isRead && !isSelected ? 'text-zinc-100 font-semibold' : 'opacity-80'}`}>{mail.subject}</span>
                           </button>
                         )
                       })}
                     </div>
                   </div>
-                  <div className="flex-1 flex flex-col h-[400px] lg:h-full bg-[#0a0f1c]/50 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                  <div className="flex-1 flex flex-col h-full bg-[#0a0f1c]/50 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
                     {selectedEmail ? (
-                      <div className="p-8 max-w-3xl mx-auto w-full flex flex-col">
-                        <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-2xl shadow-sm border border-white/5">{selectedEmail.senderAvatar}</div>
+                      <div className="p-4 sm:p-8 max-w-3xl mx-auto w-full flex flex-col">
+                        <div className="flex justify-between items-start mb-6 sm:mb-8 border-b border-white/5 pb-4 sm:pb-6">
+                          <div className="flex items-center gap-2 sm:gap-4">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-xl sm:text-2xl shadow-sm border border-white/5">{selectedEmail.senderAvatar}</div>
                             <div>
-                              <h3 className="text-lg font-bold text-zinc-50">{selectedEmail.sender}</h3>
-                              <p className="text-[13px] text-zinc-400">{selectedEmail.senderRole}</p>
+                              <h3 className="text-sm sm:text-lg font-bold text-zinc-50">{selectedEmail.sender}</h3>
+                              <p className="text-[11px] sm:text-[13px] text-zinc-400">{selectedEmail.senderRole}</p>
                             </div>
                           </div>
-                          <span className="text-[12px] text-zinc-400 font-mono py-1 px-3 bg-white/5 rounded-full border border-white/5">{selectedEmail.receivedAt}</span>
+                          <span className="text-[10px] sm:text-[12px] text-zinc-400 font-mono py-1 px-2 sm:px-3 bg-white/5 rounded-full border border-white/5">{selectedEmail.receivedAt}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-zinc-50 mb-6 font-serif tracking-tight">{selectedEmail.subject}</h2>
-                        <div className="text-[14px] text-zinc-300 leading-relaxed space-y-4 mb-8 whitespace-pre-line bg-white/5 p-6 rounded-3xl border border-white/5 shadow-inner">{selectedEmail.content}</div>
+                        <h2 className="text-lg sm:text-2xl font-bold text-zinc-50 mb-4 sm:mb-6 font-serif tracking-tight">{selectedEmail.subject}</h2>
+                        <div className="text-[12px] sm:text-[14px] text-zinc-300 leading-relaxed space-y-4 mb-6 sm:mb-8 whitespace-pre-line bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/5 shadow-inner">{selectedEmail.content}</div>
                         {selectedEmail.missionActive && (
                            <div className="mt-4 p-6 bg-indigo-950/30 border border-indigo-500/30 rounded-3xl">
                              <div className="flex items-center gap-3 mb-4"><ShieldAlert className="text-indigo-400 w-6 h-6" /><h3 className="text-zinc-50 font-semibold text-lg">Action Required</h3></div>
@@ -537,6 +538,7 @@ export default function CyberSecSim() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
           
           <aside className="order-2 lg:order-none w-full lg:w-[260px] xl:w-[300px] bg-slate-900/40 backdrop-blur-3xl shadow-xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-l border-white/5" id="sleek-sidebar-right">

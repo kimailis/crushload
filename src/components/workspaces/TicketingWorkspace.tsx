@@ -22,7 +22,7 @@ export default function TicketingWorkspace({ config }: { config: CareerConfig })
   const selectedTicket = tickets.find(t => t.id === activeTicket);
 
   return (
-    <motion.div key="ticketing" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:flex-row lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-black/50 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative">
+    <motion.div key="ticketing" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:flex-row h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-black/50 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative">
       <div className="absolute inset-0 bg-[#0a0f1c] z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-900/10 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/4 pointer-events-none" />
@@ -47,7 +47,7 @@ export default function TicketingWorkspace({ config }: { config: CareerConfig })
         </header>
 
         <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 w-full">
-          <aside className="order-3 lg:order-none w-full lg:w-[280px] xl:w-[320px] bg-slate-900/40 backdrop-blur-3xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-r border-white/5">
+          <aside className="order-3 lg:order-none w-full lg:w-[280px] xl:w-[320px] bg-slate-900/40 backdrop-blur-3xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-r border-white/5 h-[200px] lg:h-full">
             <div className="p-4 border-b border-white/5 bg-black/20 flex justify-between items-center shrink-0">
                <h2 className="text-[12px] font-bold text-zinc-500 tracking-[0.2em] uppercase">Open Tickets</h2>
                <span className="bg-indigo-500/20 text-indigo-400 w-5 h-5 flex items-center justify-center rounded-md text-[10px] font-bold border border-indigo-500/30">

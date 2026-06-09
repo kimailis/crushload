@@ -20,7 +20,7 @@ export default function TerminalFeedWorkspace({ config }: { config: CareerConfig
   }, []);
 
   return (
-    <motion.div key="terminal" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto bg-[#0a0600]/80 text-[#ffaa00] font-mono overflow-hidden relative selection:bg-[#ffaa00] selection:text-black border border-[#ffaa00]/20 shadow-[0_0_30px_rgba(255,170,0,0.1)] rounded-[28px]">
+    <motion.div key="terminal" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto bg-[#0a0600]/80 text-[#ffaa00] font-mono overflow-hidden relative selection:bg-[#ffaa00] selection:text-black border border-[#ffaa00]/20 shadow-[0_0_30px_rgba(255,170,0,0.1)] rounded-[28px]">
       <div className="absolute inset-0 bg-transparent z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#ffaa00 1px, transparent 1px), linear-gradient(90deg, #ffaa00 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-yellow-900/10 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/4 pointer-events-none" />

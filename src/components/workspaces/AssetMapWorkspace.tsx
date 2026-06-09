@@ -12,7 +12,7 @@ export default function AssetMapWorkspace({ config }: { config: CareerConfig }) 
   ];
 
   return (
-    <motion.div key="map" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-[#030712] border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative font-mono selection:bg-emerald-500/30">
+    <motion.div key="map" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-[#030712] border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative font-mono selection:bg-emerald-500/30">
       
       {/* HUD Overlay */}
       <div className="absolute top-4 left-4 z-20 space-y-4">

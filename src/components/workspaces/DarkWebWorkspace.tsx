@@ -21,7 +21,7 @@ export default function DarkWebWorkspace({ config }: { config: CareerConfig }) {
   };
 
   return (
-    <motion.div key="darkweb" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col lg:h-[75vh] lg:min-h-[600px] w-full max-w-5xl mx-auto bg-[#050505] overflow-hidden relative font-mono selection:bg-rose-500/30 border border-rose-500/10 rounded-[28px] shadow-2xl">
+    <motion.div key="darkweb" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-5xl mx-auto bg-[#050505] overflow-hidden relative font-mono selection:bg-rose-500/30 border border-rose-500/10 rounded-[28px] shadow-2xl">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none" />
       
       <div className="p-2 bg-black border-b border-rose-500/20 flex gap-2">

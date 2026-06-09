@@ -21,6 +21,10 @@ import TradeDeskWorkspace from '../../../components/workspaces/TradeDeskWorkspac
 import OffshoreAccountsWorkspace from '../../../components/workspaces/OffshoreAccountsWorkspace';
 import DarkWebWorkspace from '../../../components/workspaces/DarkWebWorkspace';
 import AssetMapWorkspace from '../../../components/workspaces/AssetMapWorkspace';
+import StockCandlestickWorkspace from '../../../components/workspaces/StockCandlestickWorkspace';
+import ActiveDirectoryWorkspace from '../../../components/workspaces/ActiveDirectoryWorkspace';
+import VisualAnalysisWorkspace from '../../../components/workspaces/VisualAnalysisWorkspace';
+import FieldIntelWorkspace from '../../../components/workspaces/FieldIntelWorkspace';
 
 interface LogEntry {
   id: string;
@@ -278,13 +282,13 @@ export default function SimWrapper() {
       case 'dashboard': return <DashboardWorkspace config={config} type={config.id} activeMissions={activeMissions} />;
       case 'emails': return <InboxWorkspace config={config} missions={missions} setMissions={setMissions} acceptMission={acceptMission} completeMission={completeMission} />;
       case 'inbox': return <InboxWorkspace config={config} missions={missions} setMissions={setMissions} acceptMission={acceptMission} completeMission={completeMission} />;
-      case 'cli': return <CliWorkspace />;
+      case 'cli': return <CliWorkspace careerId={config.id} />;
       case 'topology': return <TopologyWorkspace />;
       case 'editor': return <EditorWorkspace config={config} />;
-      case 'terminal': return <TerminalFeedWorkspace config={config} />;
+      case 'terminal': return config.id === 'investment-manager' ? <StockCandlestickWorkspace /> : <TerminalFeedWorkspace config={config} />;
       case 'sql': return <SqlWorkspace />;
       case 'dag': return <DagViewerWorkspace config={config} />;
-      case 'tickets': return <TicketingWorkspace config={config} />;
+      case 'tickets': return config.id === 'spy-manager' ? <FieldIntelWorkspace config={config} /> : <TicketingWorkspace config={config} />;
       case 'desk': return <TradeDeskWorkspace config={config} />;
       case 'accounts': return <OffshoreAccountsWorkspace config={config} />;
       case 'darkweb': return <DarkWebWorkspace config={config} />;
@@ -294,8 +298,8 @@ export default function SimWrapper() {
       case 'marketing': return <DashboardWorkspace config={config} type="marketing" activeMissions={activeMissions} />;
       case 'excel': return <ExcelWorkspace config={config} />;
       case 'financial': return <DashboardWorkspace config={config} type="financial" activeMissions={activeMissions} />;
-      case 'dashboards': return <DashboardWorkspace config={config} type="analytics" activeMissions={activeMissions} />;
-      case 'ad': return <TopologyWorkspace />;
+      case 'dashboards': return <VisualAnalysisWorkspace />;
+      case 'ad': return <ActiveDirectoryWorkspace />;
       case 'inventory': return <ExcelWorkspace config={config} />;
       case 'logs': return <TerminalFeedWorkspace config={config} />;
     }
@@ -304,7 +308,7 @@ export default function SimWrapper() {
       case 'cli': return <CliWorkspace />;
       case 'sql': return <SqlWorkspace />;
       case 'editor': return <EditorWorkspace config={config} />;
-      case 'ticketing': return <TicketingWorkspace config={config} />;
+      case 'ticketing': return config.id === 'spy-manager' ? <FieldIntelWorkspace config={config} /> : <TicketingWorkspace config={config} />;
       case 'dag_viewer': return <DagViewerWorkspace config={config} />;
       case 'terminal_feed': return <TerminalFeedWorkspace config={config} />;
       default: return <div className="p-20 text-zinc-400 font-mono text-center flex-1 h-full w-full">Module currently offline. Please contact administrator.</div>;
@@ -389,7 +393,7 @@ export default function SimWrapper() {
             </div>
           </aside>
 
-          <div className="order-1 lg:order-none lg:flex-1 min-w-0 w-full p-4 lg:p-6 overflow-hidden relative flex flex-col" id="sleek-center-viewport">
+          <div className="order-1 lg:order-none lg:flex-1 min-w-0 w-full p-4 lg:p-6 lg:overflow-y-auto relative flex flex-col" id="sleek-center-viewport">
             <div className="flex items-center justify-center gap-1 p-1 bg-black/40 border border-white/10 backdrop-blur-2xl rounded-xl w-full sm:w-fit sm:mx-auto mb-4 shadow-2xl relative z-20 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-white/10">
               {config.sidebarTabs.map(tab => {
                 const Icon = (Icons as any)[tab.icon] || Icons.Square;
@@ -407,9 +411,11 @@ export default function SimWrapper() {
               })}
             </div>
 
-            <AnimatePresence mode="wait">
-               {renderWorkspace()}
-            </AnimatePresence>
+            <div className="flex-1 w-full flex flex-col" style={{ zoom: 0.85 }}>
+              <AnimatePresence mode="wait">
+                 {renderWorkspace()}
+              </AnimatePresence>
+            </div>
           </div>
 
           <aside className="order-2 lg:order-none w-full lg:w-[260px] xl:w-[300px] bg-slate-900/40 backdrop-blur-3xl shadow-xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-l border-white/5" id="sleek-sidebar-right">
