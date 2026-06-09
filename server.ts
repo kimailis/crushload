@@ -7,9 +7,54 @@ import { GoogleGenAI, Type } from "@google/genai";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "64kb" }));
+
+// Baseline security headers (no framing, no MIME sniffing, no referrer leakage)
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
 
 const PORT = Number(process.env.PORT) || 3000;
+
+// --- AI usage budget guard ---------------------------------------------------
+// The game targets an AI/infra spend cap (~40 ILS/month or 20% of subscriber
+// revenue), so AI calls are throttled per client and capped globally per day.
+const AI_RATE_LIMIT_PER_MINUTE = Number(process.env.AI_RATE_LIMIT_PER_MINUTE) || 8;
+const AI_DAILY_CALL_CAP = Number(process.env.AI_DAILY_CALL_CAP) || 500;
+
+const clientWindows = new Map<string, { windowStart: number; count: number }>();
+let dailyCalls = { day: new Date().toDateString(), count: 0 };
+
+function aiCallAllowed(clientKey: string): boolean {
+  const today = new Date().toDateString();
+  if (dailyCalls.day !== today) dailyCalls = { day: today, count: 0 };
+  if (dailyCalls.count >= AI_DAILY_CALL_CAP) return false;
+
+  const now = Date.now();
+  const win = clientWindows.get(clientKey);
+  if (!win || now - win.windowStart > 60_000) {
+    clientWindows.set(clientKey, { windowStart: now, count: 1 });
+  } else {
+    if (win.count >= AI_RATE_LIMIT_PER_MINUTE) return false;
+    win.count++;
+  }
+  if (clientWindows.size > 10_000) clientWindows.clear();
+
+  dailyCalls.count++;
+  return true;
+}
+
+// Bound prompt context so a single request can't inflate token spend
+function compactJson(value: unknown, maxChars = 2000): string {
+  const str = JSON.stringify(value) ?? "null";
+  return str.length > maxChars ? str.slice(0, maxChars) + "…" : str;
+}
+
+const ADVISOR_PERSONAS = ["executive", "finance", "ops", "pr"] as const;
 
 // Initialize Google Gen AI
 const apiKey = process.env.GEMINI_API_KEY;
@@ -35,7 +80,21 @@ app.post("/api/ai/advisor", async (req, res) => {
     });
   }
 
+  if (!aiCallAllowed(req.ip || "unknown")) {
+    return res.status(429).json({
+      text: "📡 [SYSTEM] Advisory uplink saturated — the board is in back-to-back meetings. Try again in a minute.",
+      success: false
+    });
+  }
+
   const { persona, userMessage, currentArchitecture, metrics, activeAlerts } = req.body;
+
+  if (persona !== undefined && !ADVISOR_PERSONAS.includes(persona)) {
+    return res.status(400).json({ text: "Unknown advisor persona.", success: false });
+  }
+  if (userMessage !== undefined && typeof userMessage !== "string") {
+    return res.status(400).json({ text: "Invalid message payload.", success: false });
+  }
 
   try {
     const systemPromptMap: Record<string, string> = {
@@ -62,16 +121,16 @@ Your tone is polite, PR-fluent, polished, and communicative.`
 
     const systemInstruction = `${systemPromptMap[persona] || "You are a cyber security expert."}
 You are assisting the Security Project Manager / Lead Security Architect (the player).
-Based on the current architecture: ${JSON.stringify(currentArchitecture)}.
-Game Metrics: ${JSON.stringify(metrics)}.
-Active high severity alerts: ${JSON.stringify(activeAlerts)}.
+Based on the current architecture: ${compactJson(currentArchitecture)}.
+Game Metrics: ${compactJson(metrics, 500)}.
+Active high severity alerts: ${compactJson(activeAlerts, 1000)}.
 
 Respond to the player's message in character.
 Keep your response concise (between 3 to 5 sentences). You can use simple markdown (bold text, short bullet points). Encourage the player to take strategic defensive action, upgrade components, patch bugs, use terminal commands, or balance the budget!`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
-      contents: userMessage || "What should our immediate priorities be?",
+      contents: (userMessage || "What should our immediate priorities be?").slice(0, 600),
       config: {
         systemInstruction,
         temperature: 0.8,
@@ -120,8 +179,24 @@ app.post("/api/ai/generate-mission", async (req, res) => {
 
   const { currentArchitecture, metrics } = req.body;
 
+  if (!aiCallAllowed(req.ip || "unknown")) {
+    // Same in-character fallback shape the no-key path uses, so the game keeps flowing
+    return res.json([{
+      id: "throttled_" + Date.now(),
+      sender: "Evelyn (CEO)",
+      senderRole: "Chief Executive Officer",
+      senderAvatar: "🏢",
+      subject: "Re: Pending Directives",
+      content: "HQ is processing a backlog of strategic requests. New directives will be issued shortly — focus on existing operations in the meantime.",
+      receivedAt: new Date().toLocaleTimeString(),
+      isRead: false,
+      missionActive: false,
+      missionCompleted: false
+    }]);
+  }
+
   try {
-    const prompt = `System state: architecture=${JSON.stringify(currentArchitecture)}, metrics=${JSON.stringify(metrics)}.
+    const prompt = `System state: architecture=${compactJson(currentArchitecture)}, metrics=${compactJson(metrics, 500)}.
 Generate a JSON payload with a "scenarioBatch" array of 2 to 4 emails.
 Requirements:
 1. One email must be a "large material" (detailed instructions/report).

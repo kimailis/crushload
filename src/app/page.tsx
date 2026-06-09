@@ -228,7 +228,7 @@ export default function LandingPage() {
             <p>© {new Date().getFullYear()} CrushLoad Inc. All rights reserved.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
                <span>v2.4.9</span>
-               <span>SOC2 Type II Certified</span>
+               <span>All scenarios are fictional satire</span>
             </div>
          </div>
       </footer>

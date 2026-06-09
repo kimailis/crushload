@@ -72,7 +72,7 @@ export const CAREER_MAP: Record<string, CareerConfig> = {
     tier: 'paid',
     layoutType: 'dag_viewer',
     metrics: [{id: 'laundered', name: 'Cleaned ($M)', startValue: 12, color: 'emerald'}, {id: 'heat', name: 'Heat Level', startValue: 45, color: 'rose'}],
-    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'dag', label: 'Mixer Topology', icon: 'GitMerge'}, {id: 'accounts', label: 'Routing Network', icon: 'Database'}]
+    sidebarTabs: [{id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'}, {id: 'emails', label: 'Email', icon: 'Mail'}, {id: 'dag', label: 'Mixer Topology', icon: 'GitMerge'}, {id: 'accounts', label: 'Routing Network', icon: 'Database'}, {id: 'darkweb', label: 'Onion Market', icon: 'Eye'}]
   },
   'cyber-activist': {
     id: 'cyber-activist',

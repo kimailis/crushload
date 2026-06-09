@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, ShieldAlert, Server, HardDrive, Terminal as TerminalIcon, Mail, Users, HelpCircle, Briefcase, Code, AlertTriangle, Cpu, Coins, RefreshCw, CheckCircle, TrendingDown, TrendingUp, XCircle, Send, Lock, Unlock, AlertCircle, Clock, ChevronRight, UserCheck, Zap, LayoutDashboard, Play, History, Check, X } from 'lucide-react';
+import { Shield, ShieldAlert, Server, HardDrive, Terminal as TerminalIcon, Mail, Users, HelpCircle, Briefcase, Code, AlertTriangle, Cpu, Coins, RefreshCw, CheckCircle, TrendingDown, TrendingUp, XCircle, Send, Lock, Unlock, AlertCircle, Clock, ChevronRight, UserCheck, Zap, LayoutDashboard, Play, History, Check, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArchNode, SecurityMetric, SecurityEvent, Email, Employee, LogEntry } from '../types';
+import { ArchNode, SecurityMetric, SecurityEvent, Email, Employee, LogEntry, MissionOption } from '../types';
 import { getInitialCiscoState, parseCiscoCommand, CiscoDeviceState } from '../utils';
 import { INITIAL_NODES, INITIAL_METRICS, INITIAL_EVENTS, INITIAL_EMAILS, INITIAL_EMPLOYEES, INITIAL_LOGS } from '../data';
+
+const ADVISORS = [
+  { id: 'ops', name: 'Chloe Lin', role: 'Security Ops SRE', avatar: '👩‍💻' },
+  { id: 'executive', name: 'Evelyn Chase', role: 'Chief Executive', avatar: '🏢' },
+  { id: 'finance', name: 'Marcus Sterling', role: 'CFO / Management', avatar: '💼' },
+  { id: 'pr', name: 'Samantha Zane', role: 'Public Relations', avatar: '👩‍💼' }
+] as const;
+
+interface AdvisorMessage {
+  from: 'player' | 'advisor';
+  text: string;
+}
 
 export default function CyberSecSim() {
   const [nodes, setNodes] = useState<ArchNode[]>(INITIAL_NODES);
@@ -24,9 +36,86 @@ export default function CyberSecSim() {
   const [simulationStatus, setSimulationStatus] = useState<string | null>(null);
   const [simulationSuccess, setSimulationSuccess] = useState<boolean | null>(null);
 
+  const [activeAdvisor, setActiveAdvisor] = useState<typeof ADVISORS[number] | null>(null);
+  const [advisorThreads, setAdvisorThreads] = useState<Record<string, AdvisorMessage[]>>({});
+  const [advisorInput, setAdvisorInput] = useState('');
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [generatingMissions, setGeneratingMissions] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     terminalBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [terminalHistory]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [advisorThreads, advisorLoading]);
+
+  // Compact game-state snapshot sent to the AI endpoints (keeps token spend bounded)
+  const buildAiContext = () => ({
+    currentArchitecture: nodes.map(n => ({
+      id: n.id, name: n.name, level: n.upgradeLevel, patched: n.isPatched, vulnerability: n.vulnerability
+    })),
+    metrics,
+    activeAlerts: alerts.filter(a => a.status === 'active').map(a => ({ title: a.title, severity: a.severity, sourceIp: a.sourceIp }))
+  });
+
+  const sendAdvisorMessage = async () => {
+    if (!activeAdvisor || !advisorInput.trim() || advisorLoading) return;
+    const persona = activeAdvisor.id;
+    const message = advisorInput.trim();
+    setAdvisorInput('');
+    setAdvisorThreads(prev => ({ ...prev, [persona]: [...(prev[persona] || []), { from: 'player', text: message }] }));
+    setAdvisorLoading(true);
+    try {
+      const res = await fetch('/api/ai/advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persona, userMessage: message, ...buildAiContext() })
+      });
+      const data = await res.json();
+      setAdvisorThreads(prev => ({ ...prev, [persona]: [...(prev[persona] || []), { from: 'advisor', text: data.text || 'No response received.' }] }));
+    } catch {
+      setAdvisorThreads(prev => ({ ...prev, [persona]: [...(prev[persona] || []), { from: 'advisor', text: '📡 Connection lost. The advisory channel is temporarily unreachable.' }] }));
+    } finally {
+      setAdvisorLoading(false);
+    }
+  };
+
+  const requestDirectives = async () => {
+    if (generatingMissions) return;
+    setGeneratingMissions(true);
+    addLog('Requesting new directives from headquarters...', 'info');
+    try {
+      const res = await fetch('/api/ai/generate-mission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAiContext())
+      });
+      const incoming: Email[] = await res.json();
+      if (Array.isArray(incoming) && incoming.length > 0) {
+        setEmails(prev => [...incoming, ...prev]);
+        addLog(`${incoming.length} new transmission(s) received from headquarters.`, 'success');
+      }
+    } catch {
+      addLog('Failed to reach headquarters. Directive channel offline.', 'error');
+    } finally {
+      setGeneratingMissions(false);
+    }
+  };
+
+  const resolveMissionOption = (emailId: string, option: MissionOption) => {
+    const reward = emails.find(e => e.id === emailId)?.missionRewardBudget || 0;
+    setMetrics(prev => ({
+      ...prev,
+      budget: Math.max(0, prev.budget + option.budgetEffect + reward),
+      riskScore: Math.max(0, Math.min(100, prev.riskScore + option.riskEffect)),
+      morale: Math.max(0, Math.min(100, prev.morale + option.moraleEffect))
+    }));
+    setEmails(prev => prev.map(e => e.id === emailId ? { ...e, missionCompleted: true, missionAccepted: false, isRead: true } : e));
+    setSelectedEmail(prev => prev && prev.id === emailId ? { ...prev, missionCompleted: true, missionAccepted: false, isRead: true } : prev);
+    addLog(option.outcomeText, option.riskEffect <= 0 ? 'success' : 'warning');
+  };
 
   const addLog = (message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info') => {
     setLogs(prev => [{
@@ -189,6 +278,7 @@ export default function CyberSecSim() {
       }
       return e;
     }));
+    setSelectedEmail(prev => prev && prev.id === emailId ? { ...prev, missionAccepted: true, isRead: true } : prev);
     addLog('Mission Accepted. See Dashboard for details and reward parameters.', 'info');
   };
 
@@ -259,15 +349,17 @@ export default function CyberSecSim() {
         <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden relative z-10" id="applet-body-wrap">
           <aside className="order-3 lg:order-none w-full lg:w-[220px] xl:w-64 bg-slate-900/40 backdrop-blur-3xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-r border-white/5" id="sleek-sidebar-left">
             <div className="p-4">
-              <h2 className="text-[13px] font-semibold tracking-tight text-zinc-400 mb-3">Active Stakeholders</h2>
+              <h2 className="text-[13px] font-semibold tracking-tight text-zinc-400 mb-3">Advisors</h2>
               <div className="space-y-2">
-                {[
-                  { id: 'ops', name: 'Chloe Lin', role: 'Security Ops SRE', avatar: '👩‍💻' },
-                  { id: 'executive', name: 'Evelyn Chase', role: 'Chief Executive', avatar: '🏢' },
-                  { id: 'finance', name: 'Marcus Sterling', role: 'CFO / Management', avatar: '💼' },
-                  { id: 'pr', name: 'Rachel Zane', role: 'Public Relations', avatar: '👩‍💼' }
-                ].map(per => (
-                  <div key={per.id} className="w-full flex items-center gap-3 p-2.5 rounded-[20px] bg-white/5 border border-white/5 text-left transition-all">
+                {ADVISORS.map(per => (
+                  <button
+                    key={per.id}
+                    onClick={() => setActiveAdvisor(per)}
+                    aria-label={`Open chat with ${per.name}, ${per.role}`}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-[20px] border text-left transition-all cursor-pointer ${
+                      activeAdvisor?.id === per.id ? 'bg-indigo-600/20 border-indigo-500/40' : 'bg-white/5 border-white/5 hover:bg-white/10'
+                    }`}
+                  >
                     <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-lg">
                       {per.avatar}
                     </div>
@@ -275,7 +367,8 @@ export default function CyberSecSim() {
                       <p className="text-[14px] font-medium truncate text-zinc-50">{per.name}</p>
                       <p className="text-[12px] truncate text-zinc-400">{per.role}</p>
                     </div>
-                  </div>
+                    <MessageSquare className="w-4 h-4 text-zinc-500 shrink-0" />
+                  </button>
                 ))}
               </div>
             </div>
@@ -311,6 +404,8 @@ export default function CyberSecSim() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
+                    aria-label={tab.label}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
                     className={`relative px-4 py-3 sm:py-2 text-[13px] font-medium rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap flex-1 sm:flex-none ${
                       activeTab === tab.id ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                     }`}
@@ -395,7 +490,19 @@ export default function CyberSecSim() {
               {activeTab === 'emails' && (
                 <motion.div key="emails" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-row h-[600px] lg:h-[75vh] lg:min-h-[600px] overflow-hidden bg-white/5 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl">
                   <div className="w-[180px] sm:w-[280px] md:w-[320px] shrink-0 border-r border-white/5 flex flex-col bg-slate-900/40 h-full">
-                    <div className="p-3 sm:p-5 border-b border-white/5 shrink-0"><h2 className="text-[13px] sm:text-base lg:text-lg font-semibold text-zinc-50 flex items-center gap-1.5 sm:gap-2"><Mail className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" /> Inbox</h2></div>
+                    <div className="p-3 sm:p-5 border-b border-white/5 shrink-0 flex items-center justify-between gap-2">
+                      <h2 className="text-[13px] sm:text-base lg:text-lg font-semibold text-zinc-50 flex items-center gap-1.5 sm:gap-2"><Mail className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" /> Inbox</h2>
+                      <button
+                        onClick={requestDirectives}
+                        disabled={generatingMissions}
+                        aria-label="Request new directives from headquarters"
+                        title="Request new AI-generated directives"
+                        className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-indigo-500/15 hover:bg-indigo-500/30 disabled:opacity-50 text-indigo-300 border border-indigo-500/25 px-2.5 py-1.5 rounded-full transition cursor-pointer shrink-0"
+                      >
+                        {generatingMissions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">{generatingMissions ? 'Receiving…' : 'Directives'}</span>
+                      </button>
+                    </div>
                     <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 p-1.5 sm:p-2 space-y-1">
                       {emails.map(mail => {
                         const isSelected = selectedEmail?.id === mail.id;
@@ -441,12 +548,30 @@ export default function CyberSecSim() {
                                <span className="text-[13px] text-zinc-300 font-mono">Operations Reward Budget:</span>
                                <span className="text-[16px] text-amber-400 font-bold font-mono">${selectedEmail.missionRewardBudget?.toLocaleString()}</span>
                              </div>
-                             {!selectedEmail.missionAccepted && !selectedEmail.missionCompleted ? (
-                               <button onClick={() => acceptMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20"><Briefcase className="w-5 h-5" /> Accept Mission Directive</button>
-                             ) : selectedEmail.missionAccepted && !selectedEmail.missionCompleted ? (
-                               <button onClick={() => completeMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20"><CheckCircle className="w-5 h-5" /> Mark Mission Completed</button>
-                             ) : (
+                             {selectedEmail.missionCompleted ? (
                                <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold py-3.5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20"><Check className="w-5 h-5" /> Mission Accomplished</div>
+                             ) : selectedEmail.options && selectedEmail.options.length > 0 ? (
+                               <div className="flex flex-col gap-3">
+                                 <span className="text-[12px] text-zinc-400 uppercase font-bold tracking-widest">Choose your response:</span>
+                                 {selectedEmail.options.map(opt => (
+                                   <button
+                                     key={opt.id}
+                                     onClick={() => resolveMissionOption(selectedEmail.id, opt)}
+                                     className="w-full text-left p-4 rounded-2xl bg-white/5 hover:bg-indigo-600/20 border border-white/10 hover:border-indigo-500/40 transition cursor-pointer group"
+                                   >
+                                     <span className="text-[14px] font-semibold text-zinc-100 block mb-2">{opt.text}</span>
+                                     <span className="flex flex-wrap gap-2 text-[11px] font-mono font-bold">
+                                       <span className={opt.riskEffect <= 0 ? 'text-emerald-400' : 'text-rose-400'}>Risk {opt.riskEffect > 0 ? '+' : ''}{opt.riskEffect}</span>
+                                       <span className={opt.budgetEffect >= 0 ? 'text-emerald-400' : 'text-amber-400'}>Budget {opt.budgetEffect >= 0 ? '+' : '-'}${Math.abs(opt.budgetEffect).toLocaleString()}</span>
+                                       <span className={opt.moraleEffect >= 0 ? 'text-emerald-400' : 'text-rose-400'}>Morale {opt.moraleEffect > 0 ? '+' : ''}{opt.moraleEffect}</span>
+                                     </span>
+                                   </button>
+                                 ))}
+                               </div>
+                             ) : !selectedEmail.missionAccepted ? (
+                               <button onClick={() => acceptMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20"><Briefcase className="w-5 h-5" /> Accept Mission Directive</button>
+                             ) : (
+                               <button onClick={() => completeMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20"><CheckCircle className="w-5 h-5" /> Mark Mission Completed</button>
                              )}
                            </div>
                         )}
@@ -532,7 +657,7 @@ export default function CyberSecSim() {
                      ) : (
                       <span className="text-emerald-500 font-mono font-bold pl-2 truncate shrink-0">pm-user@secops:~$</span>
                      )}
-                     <input type="text" value={terminalInput} onChange={e => setTerminalInput(e.target.value)} placeholder={ciscoSession ? "Enter IOS command..." : "Execute tool or 'help'"} className="flex-1 bg-transparent text-emerald-300 font-mono text-[16px] lg:text-[13px] outline-none placeholder-zinc-700 ml-1 rounded-none" />
+                     <input type="text" value={terminalInput} onChange={e => setTerminalInput(e.target.value)} placeholder={ciscoSession ? "Enter IOS command..." : "Execute tool or 'help'"} aria-label="Terminal command input" className="flex-1 bg-transparent text-emerald-300 font-mono text-[16px] lg:text-[13px] outline-none placeholder-zinc-700 ml-1 rounded-none" />
                      <button type="submit" className="hidden">send</button>
                    </form>
                 </motion.div>
@@ -575,6 +700,78 @@ export default function CyberSecSim() {
           </aside>
         </main>
       </div>
+
+      {/* Advisor chat drawer (Slack-style floating panel) */}
+      <AnimatePresence>
+        {activeAdvisor && (
+          <motion.div
+            key="advisor-chat"
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.97 }}
+            transition={{ duration: 0.2 }}
+            role="dialog"
+            aria-label={`Chat with ${activeAdvisor.name}`}
+            className="fixed bottom-4 right-4 z-[1000] w-[calc(100vw-2rem)] sm:w-[380px] h-[480px] max-h-[75dvh] flex flex-col bg-[#0a0f1c]/95 backdrop-blur-3xl border border-white/10 rounded-[24px] shadow-2xl shadow-black/50 overflow-hidden"
+          >
+            <div className="p-4 flex items-center gap-3 border-b border-white/10 bg-white/5 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-xl">{activeAdvisor.avatar}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-zinc-50 truncate">{activeAdvisor.name}</p>
+                <p className="text-[11px] text-emerald-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {activeAdvisor.role}</p>
+              </div>
+              <button onClick={() => setActiveAdvisor(null)} aria-label="Close advisor chat" className="p-2 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-100 transition cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3" aria-live="polite">
+              {(advisorThreads[activeAdvisor.id] || []).length === 0 && (
+                <div className="text-center text-zinc-500 text-[12px] mt-8 px-6 leading-relaxed">
+                  Ask {activeAdvisor.name.split(' ')[0]} for guidance on your current architecture, budget, or active threats.
+                </div>
+              )}
+              {(advisorThreads[activeAdvisor.id] || []).map((msg, i) => (
+                <div key={i} className={`max-w-[85%] p-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-line ${
+                  msg.from === 'player'
+                    ? 'self-end bg-indigo-600 text-white rounded-br-md'
+                    : 'self-start bg-white/5 border border-white/10 text-zinc-200 rounded-bl-md'
+                }`}>
+                  {msg.text}
+                </div>
+              ))}
+              {advisorLoading && (
+                <div className="self-start flex items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl rounded-bl-md text-zinc-400 text-[13px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> typing…
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            <form
+              onSubmit={e => { e.preventDefault(); sendAdvisorMessage(); }}
+              className="p-3 border-t border-white/10 bg-black/30 flex items-center gap-2 shrink-0"
+            >
+              <input
+                type="text"
+                value={advisorInput}
+                onChange={e => setAdvisorInput(e.target.value)}
+                placeholder={`Message ${activeAdvisor.name.split(' ')[0]}…`}
+                aria-label={`Message to ${activeAdvisor.name}`}
+                className="flex-1 bg-white/5 border border-white/10 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-[13px] text-zinc-100 outline-none transition placeholder-zinc-600"
+              />
+              <button
+                type="submit"
+                disabled={!advisorInput.trim() || advisorLoading}
+                aria-label="Send message"
+                className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

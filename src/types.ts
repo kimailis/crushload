@@ -32,6 +32,15 @@ export interface SecurityEvent {
   mitigationCost: number;
 }
 
+export interface MissionOption {
+  id: string;
+  text: string;
+  riskEffect: number;
+  budgetEffect: number;
+  moraleEffect: number;
+  outcomeText: string;
+}
+
 export interface Email {
   id: string;
   sender: string;
@@ -46,6 +55,7 @@ export interface Email {
   missionAccepted?: boolean;
   missionCompleted?: boolean;
   missionHint?: string;
+  options?: MissionOption[];
 }
 
 export interface Employee {

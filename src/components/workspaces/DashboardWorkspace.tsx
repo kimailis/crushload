@@ -79,6 +79,12 @@ export default function DashboardWorkspace({ config, type, activeMissions = [] }
           { label: 'Intel Gained', value: '85', trend: '+12' },
           { label: 'Cover Integrity', value: '98%', trend: '-2%' }
         ];
+      case 'cyber-activist':
+        return [
+          { label: 'Botnet Nodes', value: '45.2k', trend: '+1.4k' },
+          { label: 'Ops Completed', value: '17', trend: '+2' },
+          { label: 'OpSec Score', value: '72%', trend: '-4%' }
+        ];
       default:
         return [
           { label: 'Active Users', value: '12,450', trend: '+15%' },
@@ -145,7 +151,7 @@ export default function DashboardWorkspace({ config, type, activeMissions = [] }
           );
     }
 
-    if (['spy-manager', 'crypto-laundry', 'darkweb-ops'].includes(type)) {
+    if (['spy-manager', 'crypto-laundry', 'cyber-activist', 'darkweb-ops'].includes(type)) {
           return (
            <>
             <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Activity className="w-4 h-4" /> Operation Status</h3>

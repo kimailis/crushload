@@ -3,12 +3,28 @@ import { Eye, ShieldAlert, Lock, UserX, Cpu, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { CareerConfig } from '../../lib/career-config';
 
+const LISTINGS_BY_CAREER: Record<string, { title: string, type: string, price: string, vendor: string, status: string }[]> = {
+  'crypto-laundry': [
+    { title: 'High-Volume Mixing Contract (30d)', type: 'Service', price: '0.8 BTC', vendor: 'TumbleKing', status: 'available' },
+    { title: 'Mule Network - 200 Verified Accounts', type: 'Network', price: '1.5 BTC', vendor: 'CleanRoute', status: 'available' },
+    { title: 'Shell Company Package (Seychelles)', type: 'Entity', price: '2.4 BTC', vendor: 'PaperTrailZero', status: 'available' },
+    { title: 'Pre-Aged Cold Wallets (2019 Vintage)', type: 'Asset', price: '0.6 BTC', vendor: 'GhostLedger', status: 'available' },
+  ],
+  'spy-manager': [
+    { title: 'Diplomatic Cable Archive (Partial)', type: 'Intel', price: '3.2 BTC', vendor: 'CipherDrop', status: 'available' },
+    { title: 'Burner Identity Kit - Tier 3', type: 'Cover', price: '1.1 BTC', vendor: 'FacelessCo', status: 'available' },
+    { title: 'Embassy Staff Roster Leak', type: 'Data', price: '0.9 BTC', vendor: 'InsideMan', status: 'available' },
+  ],
+};
+
+const DEFAULT_LISTINGS = [
+  { title: 'MegaCorp Auth Tokens', type: 'Access', price: '0.45 BTC', vendor: 'Ghost1x', status: 'available' },
+  { title: 'Zero-Day Exploit (iOS 17)', type: 'Vulnerability', price: '2.1 BTC', vendor: 'zero_cool', status: 'available' },
+  { title: 'Database Dump - GlobalBank', type: 'Data', price: '1.2 BTC', vendor: 'DataBroker', status: 'available' },
+];
+
 export default function DarkWebWorkspace({ config }: { config: CareerConfig }) {
-  const [listings, setListings] = useState([
-    { title: 'MegaCorp Auth Tokens', type: 'Access', price: '0.45 BTC', vendor: 'Ghost1x', status: 'available' },
-    { title: 'Zero-Day Exploit (iOS 17)', type: 'Vulnerability', price: '2.1 BTC', vendor: 'zero_cool', status: 'available' },
-    { title: 'Database Dump - GlobalBank', type: 'Data', price: '1.2 BTC', vendor: 'DataBroker', status: 'available' },
-  ]);
+  const [listings, setListings] = useState(LISTINGS_BY_CAREER[config?.id] || DEFAULT_LISTINGS);
   const [transaction, setTransaction] = useState<string | null>(null);
 
   const handlePurchase = (index: number) => {

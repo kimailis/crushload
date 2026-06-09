@@ -418,6 +418,8 @@ export default function SimWrapper() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    aria-label={tab.label}
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
                     className={`relative px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-1 sm:flex-none ${
                       activeTab === tab.id ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)] border border-indigo-500/50' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/10 border border-transparent'
                     }`}
