@@ -11,9 +11,9 @@ export default function InboxWorkspace({
   acceptMission, 
   completeMission 
 }: { 
-  config: CareerConfig, 
-  missions: Mission[], 
-  setMissions: (m: Mission[]) => void, 
+  config: CareerConfig,
+  missions: Mission[],
+  setMissions: React.Dispatch<React.SetStateAction<Mission[]>>,
   acceptMission: (id: string) => void, 
   completeMission: (id: string) => void 
 }) {
@@ -22,7 +22,7 @@ export default function InboxWorkspace({
 
   useEffect(() => {
     if (selectedMission && selectedMission.status === 'unread') {
-      setMissions(missions.map(m => m.id === selectedMission.id ? { ...m, status: 'read' as const } : m));
+      setMissions(prev => prev.map(m => m.id === selectedMission.id ? { ...m, status: 'read' as const } : m));
     }
   }, [selectedMissionId]);
 
@@ -36,7 +36,7 @@ export default function InboxWorkspace({
              <Mail className="w-4 h-4 text-indigo-400" /> 
              <h2 className="text-[13px] font-bold tracking-widest text-zinc-300 uppercase">INBOX OUTLOOK</h2>
           </div>
-          <span className="text-[10px] bg-indigo-505/10 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono font-bold">
+          <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono font-bold">
              {missions.filter(m => m.status === 'unread').length} Unread
           </span>
         </div>

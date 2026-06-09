@@ -33,6 +33,17 @@ interface LogEntry {
   type: 'info' | 'warning' | 'error' | 'success';
 }
 
+// Tailwind cannot generate classes from dynamic strings like `text-${color}-400`,
+// so metric colors from career-config are mapped to static class names here.
+const METRIC_COLOR_CLASSES: Record<string, string> = {
+  emerald: 'text-emerald-400',
+  rose: 'text-rose-400',
+  blue: 'text-blue-400',
+  violet: 'text-violet-400',
+  amber: 'text-amber-400',
+  orange: 'text-orange-400',
+};
+
 const CAREER_TOOLING: Record<string, {
   stakeholders: { id: string, name: string, role: string, avatar: string }[],
   systemChecks: { label: string, status: string, color: string }[],
@@ -189,6 +200,12 @@ export default function SimWrapper() {
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const [missions, setMissions] = useState<Mission[]>([]);
+
+  useEffect(() => {
+    if (localStorage.getItem('sim_user_auth') !== 'true') {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     if (config) {
@@ -351,7 +368,7 @@ export default function SimWrapper() {
               {config.metrics.map(metric => (
                  <React.Fragment key={metric.id}>
                     <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest leading-none col-start-1">{metric.name}</span>
-                    <span className={`text-[13px] font-mono font-bold leading-none text-${metric.color}-400 col-start-2`}>
+                    <span className={`text-[13px] font-mono font-bold leading-none ${METRIC_COLOR_CLASSES[metric.color] || 'text-zinc-400'} col-start-2`}>
                       {metric.id === 'budget' || metric.id === 'compute' ? '$' : ''}{(metricsState[metric.id] || metric.startValue).toLocaleString()}
                     </span>
                  </React.Fragment>

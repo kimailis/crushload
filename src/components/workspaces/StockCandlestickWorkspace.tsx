@@ -278,7 +278,7 @@ export default function StockCandlestickWorkspace() {
 
              {/* Render high candles map with SVGs */}
              <div className="flex-grow flex items-end justify-between px-6 pt-10 pb-2 relative z-10">
-                {selectedStock.candles.map((c, i) => {
+                {(() => {
                    // Calculate heights using mock percentage scales of the box
                    // Let's safe-scale open, close, high, low on a scale relative to other points
                    const minVal = Math.min(...selectedStock.candles.map(item => item.low));
@@ -287,6 +287,7 @@ export default function StockCandlestickWorkspace() {
 
                    const pct = (val: number) => ((val - minVal) / delta) * 100;
 
+                   return selectedStock.candles.map((c, i) => {
                    const isBullish = c.close >= c.open;
                    const bottomY = 100 - pct(Math.max(c.open, c.close));
                    const heightY = Math.max(Math.abs(pct(c.open) - pct(c.close)), 3); // minimum 3% height visible
@@ -320,7 +321,8 @@ export default function StockCandlestickWorkspace() {
                         />
                      </div>
                    );
-                })}
+                   });
+                })()}
              </div>
           </div>
 

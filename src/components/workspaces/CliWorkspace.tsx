@@ -212,7 +212,7 @@ export default function CliWorkspace({ careerId }: CliWorkspaceProps) {
         } else {
           setTerminalHistory(prev => [...prev, 'Parameters invalid. Format: ad create user <username> <group>']);
         }
-      } else if (category === 'policy' && act === 'policy') {
+      } else if (act === 'policy' || act === 'gpos') {
         setTerminalHistory(prev => [
           ...prev,
           'GPO NAME                       ENFORCED',

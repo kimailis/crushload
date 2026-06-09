@@ -257,7 +257,7 @@ export default function ActiveDirectoryWorkspace() {
                       <div key={gpo.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col gap-2.5">
                          <div className="flex justify-between items-start">
                             <span className="text-[12px] font-bold text-zinc-200 tracking-wide">{gpo.name}</span>
-                            <span className={`w-2 h-2 rounded-full ${gpo.enforced ? 'bg-emerald-400 glow bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-zinc-600'}`} />
+                            <span className={`w-2 h-2 rounded-full ${gpo.enforced ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-zinc-600'}`} />
                          </div>
                          <div className="flex justify-between items-center text-[10px]">
                             <span className="text-zinc-500 font-mono">Scope: Domain-Wide</span>

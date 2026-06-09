@@ -151,7 +151,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
   const reRunDePipeline = () => {
     setDeNodes(prev => prev.map(n => n.id === 'join_events_db' ? { ...n, status: 'success' } : n));
     setTimeout(() => {
-      setDeNodes(prev => prev.map(n => n.id === 'load_warehouse' ? { ...n, status: 'success' } : n));
+      setDeNodes(prev => prev.map(n => n.id === 'load_analytics_dw' ? { ...n, status: 'success' } : n));
     }, 1000);
   };
 

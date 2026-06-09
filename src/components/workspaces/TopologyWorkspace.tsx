@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layers, Activity, ShieldCheck, AlertTriangle, Network, Cpu, Wifi, Database, Terminal, ShieldAlert, Zap, Plus, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,15 +31,24 @@ export default function TopologyWorkspace() {
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || nodes[0];
 
+  const exploitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (exploitIntervalRef.current) clearInterval(exploitIntervalRef.current);
+    };
+  }, []);
+
   const handleLaunchExploit = (exploitType: string) => {
     setActivePayload(exploitType);
     setHackingProgress(5);
     setHackLogs(prev => [`[LAUNCH] Initiating brute-force payload [${exploitType}] against target ${selectedNode.ip}...`, ...prev]);
 
+    if (exploitIntervalRef.current) clearInterval(exploitIntervalRef.current);
     const interval = setInterval(() => {
       setHackingProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
+          exploitIntervalRef.current = null;
           setActivePayload(null);
           // Set node compromised status
           setNodes(currentNodes => currentNodes.map(n => 
@@ -52,9 +61,10 @@ export default function TopologyWorkspace() {
           ]);
           return 0;
         }
-        return prev + 15;
+        return Math.min(prev + 15, 100);
       });
     }, 200);
+    exploitIntervalRef.current = interval;
   };
 
   const handleAddCustomNode = (e: React.FormEvent) => {
@@ -85,9 +95,10 @@ export default function TopologyWorkspace() {
 
   const handleDecommissionNode = (nodeId: string) => {
     if (nodes.length <= 1) return;
-    setNodes(prev => prev.filter(n => n.id !== nodeId));
+    const remaining = nodes.filter(n => n.id !== nodeId);
+    setNodes(remaining);
     setHackLogs(prev => [`Dropped target node mapping for ${nodeId}`, ...prev]);
-    setSelectedNodeId(nodes[0].id);
+    if (selectedNodeId === nodeId) setSelectedNodeId(remaining[0].id);
   };
 
   return (
