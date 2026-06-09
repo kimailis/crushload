@@ -1,6 +1,6 @@
 {
-  "name": "CyberArchitect",
-  "description": "A browser-based tactical game where you simulate the role of a Security Project Manager & Chief Architect. Manage architecture, respond to incidents, and consult with AI stakeholders.",
+  "name": "CrushLoad",
+  "description": "A darkly humorous simulation of toxic workspaces. Endure bureaucracy and test your sanity across multiple corporate careers.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

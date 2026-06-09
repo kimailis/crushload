@@ -9,11 +9,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path='/' element={<LandingPage />} />
-        <Route path='/login' element={<LoginPage />} />
-        <Route path='/profile' element={<ProfilePage />} />
-        <Route path='/sim/:careerId' element={<SimWrapper />} />
-        <Route path='*' element={<Navigate to='/' replace />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/sim/:careerId" element={<SimWrapper />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

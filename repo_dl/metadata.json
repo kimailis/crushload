@@ -1,0 +1,6 @@
+{
+  "name": "CyberArchitect",
+  "description": "A browser-based tactical game where you simulate the role of a Security Project Manager & Chief Architect. Manage architecture, respond to incidents, and consult with AI stakeholders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
