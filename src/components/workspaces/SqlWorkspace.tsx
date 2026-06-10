@@ -85,44 +85,62 @@ export default function SqlWorkspace() {
     }
 
     try {
-      if (cleaned.includes('from employees')) {
-        let rows = [...MOCK_DB.employees.rows];
-        setResults({ cols: MOCK_DB.employees.cols, rows });
-      } else if (cleaned.includes('from sales_performance')) {
-        let rows = [...MOCK_DB.sales_performance.rows];
-        if (cleaned.includes("quarter = '2026-q2'") || cleaned.includes('quarter="2026-q2"')) {
-          rows = rows.filter(r => r[0] === '2026-Q2');
-        }
-        setResults({ cols: MOCK_DB.sales_performance.cols, rows });
-      } else if (cleaned.includes('from server_status')) {
-        let rows = [...MOCK_DB.server_status.rows];
-        if (cleaned.includes('cpu_load_percent > 50') || cleaned.includes('cpu_load_percent>50')) {
-          rows = rows.filter(r => r[4] > 50);
-          setResults({ 
-            cols: ['hostname', 'cpu_load_percent', 'status'], 
-            rows: rows.map(r => [r[1], r[4], r[5]]) 
+      const selectMatch = cleaned.match(/select\s+(.*?)\s+from\s+([a-z_]+)(?:\s+where\s+(.+))?/);
+      if (!selectMatch) {
+        throw new Error('Syntax error. Expected: SELECT [cols] FROM [table] [WHERE condition]');
+      }
+
+      const rawCols = selectMatch[1];
+      const tableName = selectMatch[2];
+      const whereClause = selectMatch[3];
+
+      if (!MOCK_DB[tableName]) {
+        throw new Error(`Relation "${tableName}" does not exist.`);
+      }
+
+      const tableDef = MOCK_DB[tableName];
+      let rows = [...tableDef.rows];
+
+      // Handle WHERE
+      if (whereClause) {
+        const conditionMatch = whereClause.match(/([a-z_]+)\s*(=|>|<)\s*(['"]?[a-zA-Z0-9_.-]+['"]?)/);
+        if (conditionMatch) {
+          const colName = conditionMatch[1];
+          const op = conditionMatch[2];
+          const rawVal = conditionMatch[3].replace(/['"]/g, '');
+
+          const colIdx = tableDef.cols.indexOf(colName);
+          if (colIdx === -1) throw new Error(`Column "${colName}" does not exist.`);
+
+          rows = rows.filter(r => {
+            const cellVal = String(r[colIdx]).toLowerCase();
+            const cmpVal = String(rawVal).toLowerCase();
+            const numCell = Number(r[colIdx]);
+            const numCmp = Number(rawVal);
+
+            if (op === '=') return cellVal === cmpVal;
+            if (op === '>') return !isNaN(numCell) && !isNaN(numCmp) && numCell > numCmp;
+            if (op === '<') return !isNaN(numCell) && !isNaN(numCmp) && numCell < numCmp;
+            return true;
           });
-          return;
-        }
-        setResults({ cols: MOCK_DB.server_status.cols, rows });
-      } else if (cleaned.includes('from security_policy')) {
-        let rows = [...MOCK_DB.security_policy.rows];
-        if (cleaned.includes("severity_level = 'critical'") || cleaned.includes('severity_level="critical"')) {
-          rows = rows.filter(r => r[4] === 'CRITICAL');
-        }
-        setResults({ cols: MOCK_DB.security_policy.cols, rows });
-      } else {
-        // Generic fuzzy parsing
-        const foundTable = Object.keys(MOCK_DB).find(tbl => cleaned.includes(`from ${tbl}`) || cleaned.includes(tbl));
-        if (foundTable) {
-          setResults({
-            cols: MOCK_DB[foundTable].cols,
-            rows: MOCK_DB[foundTable].rows
-          });
-        } else {
-          throw new Error('Relation "' + query.split(' ')[2] + '" does not exist. Check table schemas listed on left panel.');
         }
       }
+
+      // Handle SELECT cols
+      if (rawCols !== '*') {
+        const selectedColNames = rawCols.split(',').map(c => c.trim());
+        const selectedColIndices = selectedColNames.map(c => {
+          const idx = tableDef.cols.indexOf(c);
+          if (idx === -1) throw new Error(`Column "${c}" does not exist.`);
+          return idx;
+        });
+
+        const mappedRows = rows.map(r => selectedColIndices.map(idx => r[idx]));
+        setResults({ cols: selectedColNames, rows: mappedRows });
+      } else {
+        setResults({ cols: tableDef.cols, rows });
+      }
+
     } catch (e: any) {
       setErrorStatus(e.message || 'Syntax error near line 1.');
     }
