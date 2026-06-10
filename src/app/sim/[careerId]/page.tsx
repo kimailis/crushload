@@ -271,6 +271,10 @@ export default function SimWrapper() {
   };
 
   const completeMission = (id: string) => {
+    if (logs.length < 2) {
+      addLog('Mission objectives not yet met. Take action in the workspace first.', 'error');
+      return;
+    }
     setMissions(prev => prev.map(m => m.id === id ? { ...m, missionCompleted: true, missionAccepted: false } : m));
     addLog('Mission successfully completed.', 'success');
   };

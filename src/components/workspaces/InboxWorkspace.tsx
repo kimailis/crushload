@@ -142,7 +142,7 @@ export default function InboxWorkspace({
                   {!selectedMission.missionAccepted && !selectedMission.missionCompleted ? (
                     <button onClick={() => acceptMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20 uppercase tracking-widest"><Briefcase className="w-4 h-4" /> Accept Mission Directive</button>
                   ) : selectedMission.missionAccepted && !selectedMission.missionCompleted ? (
-                    <button onClick={() => completeMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20 uppercase tracking-widest"><CheckCircle className="w-4 h-4" /> Clear and Finish Mission</button>
+                    <button onClick={() => completeMission(selectedMission.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3.5 px-6 rounded-xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20 uppercase tracking-widest"><CheckCircle className="w-4 h-4" /> Submit Mission</button>
                   ) : (
                     <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-xs py-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 uppercase tracking-widest"><Check className="w-4 h-4" /> Mission Cleared</div>
                   )}

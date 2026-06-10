@@ -12,12 +12,12 @@ export default function EditorWorkspace({ config }: { config: CareerConfig }) {
     setStatus('submitting');
     setFeedback(null);
     setTimeout(() => {
-      if (draft.includes('Synergistic Paradigms')) {
+      if (draft.trim().length > 10) {
          setStatus('accepted');
-         setFeedback('Perfect! Exactly what the client wanted. Very synergistic.');
+         setFeedback('Perfect! Exactly what the client wanted.');
       } else {
          setStatus('rejected');
-         setFeedback("Rejected. Needs more 'pop'. Try adding 'Synergistic Paradigms'.");
+         setFeedback("Rejected. Needs more effort. Keep typing.");
       }
     }, 1500);
   };
