@@ -195,6 +195,24 @@ export default function CyberSecSim() {
   const completeMission = (emailId: string) => {
     const email = emails.find(e => e.id === emailId);
     if (!email) return;
+
+    // Check conditions
+    if (emailId === 'msg-001') {
+      const wafBlocked = alerts.find(a => a.sourceIp === '45.33.22.1' && a.status === 'mitigated');
+      if (!wafBlocked) {
+        addLog('Mission objectives not yet met. Block the IP in terminal first.', 'error');
+        return;
+      }
+    } else if (emailId === 'msg-002') {
+      const authPatched = nodes.find(n => n.id === 'core-auth')?.isPatched;
+      if (!authPatched) {
+        addLog('Mission objectives not yet met. Patch core-auth first.', 'error');
+        return;
+      }
+    } else if (emailId.startsWith('ai_')) {
+      // AI missions are generic logic handled outside currently, we can let them pass or add specific checks later.
+    }
+
     setMetrics(prev => ({
       ...prev,
       budget: prev.budget + (email.missionRewardBudget || 0),
@@ -444,7 +462,7 @@ export default function CyberSecSim() {
                              {!selectedEmail.missionAccepted && !selectedEmail.missionCompleted ? (
                                <button onClick={() => acceptMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-indigo-500/20"><Briefcase className="w-5 h-5" /> Accept Mission Directive</button>
                              ) : selectedEmail.missionAccepted && !selectedEmail.missionCompleted ? (
-                               <button onClick={() => completeMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20"><CheckCircle className="w-5 h-5" /> Mark Mission Completed</button>
+                               <button onClick={() => completeMission(selectedEmail.id)} className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 px-6 rounded-2xl transition cursor-pointer shadow-lg hover:shadow-emerald-500/20"><CheckCircle className="w-5 h-5" /> Submit Mission</button>
                              ) : (
                                <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold py-3.5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20"><Check className="w-5 h-5" /> Mission Accomplished</div>
                              )}
