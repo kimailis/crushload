@@ -21,11 +21,11 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
 
   // CRYPTO LAUNDRY SPECIFIC STATES
   const [nodes, setNodes] = useState<TopologyNode[]>([
-    { id: 'Inlet_01', type: 'Inlet', x: 50, y: 110, capacityBtc: 50 },
-    { id: 'Shadow_Mix_1', type: 'Mixer', x: 220, y: 50, capacityBtc: 25 },
-    { id: 'Shadow_Mix_2', type: 'Mixer', x: 220, y: 170, capacityBtc: 25 },
-    { id: 'Safe_Peel_A', type: 'PeelWallet', x: 400, y: 110, capacityBtc: 50 },
-    { id: 'Exit_Bridge', type: 'ExitBridge', x: 580, y: 110, capacityBtc: 50 }
+    { id: 'Inlet_01', type: 'Inlet', x: 0, y: 110, capacityBtc: 50 },
+    { id: 'Shadow_Mix_1', type: 'Mixer', x: 150, y: 45, capacityBtc: 25 },
+    { id: 'Shadow_Mix_2', type: 'Mixer', x: 150, y: 175, capacityBtc: 25 },
+    { id: 'Safe_Peel_A', type: 'PeelWallet', x: 300, y: 110, capacityBtc: 50 },
+    { id: 'Exit_Bridge', type: 'ExitBridge', x: 450, y: 110, capacityBtc: 50 }
   ]);
   
   const [links, setLinks] = useState<TopologyLink[]>([
@@ -48,11 +48,11 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
 
   // DATA ENGINEER SPECIFIC STATES
   const [deNodes, setDeNodes] = useState([
-    { id: 'extract_sales_db', status: 'success', x: 50, y: 50 },
-    { id: 'extract_web_logs', status: 'success', x: 50, y: 150 },
-    { id: 'transform_coalesce', status: 'success', x: 220, y: 100 },
-    { id: 'join_events_db', status: 'failed', x: 380, y: 100 },
-    { id: 'load_analytics_dw', status: 'skipped', x: 540, y: 100 },
+    { id: 'extract_sales_db', status: 'success', x: 0, y: 40 },
+    { id: 'extract_web_logs', status: 'success', x: 0, y: 150 },
+    { id: 'transform_coalesce', status: 'success', x: 150, y: 95 },
+    { id: 'join_events_db', status: 'failed', x: 300, y: 95 },
+    { id: 'load_analytics_dw', status: 'skipped', x: 450, y: 95 },
   ]);
   const [selectedDeNode, setSelectedDeNode] = useState<string | null>('join_events_db');
 
@@ -67,7 +67,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
 
     // Coordinates logic inside boundary
     const count = nodes.length;
-    const xPositions = [150, 250, 350, 450, 520];
+    const xPositions = [80, 150, 230, 300, 380];
     const x = xPositions[count % 5] + Math.floor(Math.random() * 20);
     const y = 60 + ((count * 60) % 160) + Math.floor(Math.random() * 20);
 
@@ -195,32 +195,35 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
             {/* Simulated interactive Canvas mapping */}
             <div className="flex-grow p-4 lg:p-6 bg-[#030712] relative overflow-auto">
                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-               
-               {/* Connections */}
-               <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-                  <line x1={150} y1={70} x2={220} y2={120} stroke="#94a3b8" strokeWidth={2} strokeDasharray="4" />
-                  <line x1={150} y1={170} x2={220} y2={120} stroke="#94a3b8" strokeWidth={2} strokeDasharray="4" />
-                  <line x1={320} y1={120} x2={380} y2={120} stroke="#f43f5e" strokeWidth={2} className="animate-pulse" />
-                  <line x1={480} y1={120} x2={540} y2={120} stroke="#94a3b8" strokeWidth={2} />
-               </svg>
 
-               {deNodes.map(node => (
-                  <div 
-                    key={node.id} 
-                    onClick={() => setSelectedDeNode(node.id)}
-                    className={`absolute p-3 rounded-xl border flex flex-col cursor-pointer shadow-lg w-[140px] ${
-                      selectedDeNode === node.id ? 'ring-2 ring-indigo-500 border-indigo-500' : 'border-white/5'
-                    } ${
-                      node.status === 'success' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/20' :
-                      node.status === 'failed' ? 'bg-rose-950/20 text-rose-400 border-rose-500/30' :
-                      'bg-slate-900/40 text-zinc-400 border-zinc-700/30'
-                    }`}
-                    style={{ left: node.x, top: node.y }}
-                  >
-                     <span className="text-[12px] font-bold font-mono truncate">{node.id}</span>
-                     <span className="text-[9px] font-mono opacity-50 uppercase mt-1">{node.status}</span>
-                  </div>
-               ))}
+               {/* Sized inner canvas so all nodes are reachable (scrolls on narrow widths instead of clipping) */}
+               <div className="relative w-full h-full min-w-[580px] min-h-[230px]">
+                 {/* Connections */}
+                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+                    <line x1={120} y1={68} x2={150} y2={120} stroke="#94a3b8" strokeWidth={2} strokeDasharray="4" />
+                    <line x1={120} y1={178} x2={150} y2={120} stroke="#94a3b8" strokeWidth={2} strokeDasharray="4" />
+                    <line x1={270} y1={120} x2={300} y2={120} stroke="#f43f5e" strokeWidth={2} className="animate-pulse" />
+                    <line x1={420} y1={120} x2={450} y2={120} stroke="#94a3b8" strokeWidth={2} />
+                 </svg>
+
+                 {deNodes.map(node => (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedDeNode(node.id)}
+                      className={`absolute p-3 rounded-xl border flex flex-col cursor-pointer shadow-lg w-[120px] ${
+                        selectedDeNode === node.id ? 'ring-2 ring-indigo-500 border-indigo-500' : 'border-white/5'
+                      } ${
+                        node.status === 'success' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/20' :
+                        node.status === 'failed' ? 'bg-rose-950/20 text-rose-400 border-rose-500/30' :
+                        'bg-slate-900/40 text-zinc-400 border-zinc-700/30'
+                      }`}
+                      style={{ left: node.x, top: node.y }}
+                    >
+                       <span className="text-[12px] font-bold font-mono truncate">{node.id}</span>
+                       <span className="text-[9px] font-mono opacity-50 uppercase mt-1">{node.status}</span>
+                    </div>
+                 ))}
+               </div>
             </div>
 
             {/* Task inspector */}
@@ -342,7 +345,9 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
           {/* Topology Canvas (Interactive grid map) */}
           <div className="flex-grow p-4 lg:p-6 bg-[#02040b] relative overflow-auto shadow-inner select-none min-h-[220px]">
              <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-             
+
+             {/* Sized inner canvas so the Exit node is reachable (scrolls instead of clipping behind the inspector) */}
+             <div className="relative w-full h-full min-w-[600px] min-h-[230px]">
              {/* Glowing Dynamic Routing Links */}
              <svg className="absolute inset-0 w-full h-full pointer-events-none">
                 <defs>
@@ -361,7 +366,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
                     <g key={idx}>
                       {/* Base connection line */}
                       <path 
-                        d={`M${fromNode.x + 70} ${fromNode.y + 25} L${toNode.x + 70} ${toNode.y + 25}`} 
+                        d={`M${fromNode.x + 60} ${fromNode.y + 25} L${toNode.x + 60} ${toNode.y + 25}`} 
                         stroke="#334155" 
                         strokeWidth="2" 
                         fill="none" 
@@ -370,7 +375,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
                       {/* Simulating active flows */}
                       {flowStatus === 'SIMULATING' && (
                         <path 
-                          d={`M${fromNode.x + 70} ${fromNode.y + 25} L${toNode.x + 70} ${toNode.y + 25}`} 
+                          d={`M${fromNode.x + 60} ${fromNode.y + 25} L${toNode.x + 60} ${toNode.y + 25}`} 
                           stroke="url(#glowGrad)" 
                           strokeWidth="3" 
                           fill="none" 
@@ -388,7 +393,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
                 <div
                   key={node.id}
                   onClick={() => setSelectedNodeId(node.id)}
-                  className={`absolute w-[140px] p-2.5 rounded-xl border flex flex-col justify-center text-left cursor-pointer transition shadow-lg backdrop-blur-md ${
+                  className={`absolute w-[120px] p-2.5 rounded-xl border flex flex-col justify-center text-left cursor-pointer transition shadow-lg backdrop-blur-md ${
                     selectedNodeId === node.id ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-white/5'
                   } ${
                     node.type === 'Inlet' ? 'bg-indigo-950/20 text-indigo-300 border-indigo-500/25' :
@@ -401,6 +406,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
                    <span className="text-[12px] font-mono font-bold truncate text-white mt-0.5">{node.id}</span>
                 </div>
              ))}
+             </div>
           </div>
 
           {/* Node Inspector & Output Reports */}
