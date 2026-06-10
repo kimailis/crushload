@@ -281,11 +281,36 @@ export default function SimWrapper() {
     }, ...prev]);
   };
 
+  const rewardMetric = config.metrics.find(m => m.role === 'reward') || config.metrics[0];
+  const riskMetric = config.metrics.find(m => m.role === 'risk') || config.metrics[1] || config.metrics[0];
+
+  // A natural per-metric increment, sized to its own scale.
+  const stepOf = (startValue: number) => startValue <= 120 ? 4 : Math.max(1, Math.round(startValue * 0.04));
+
+  // Move a metric toward ('good') or away from ('bad') its desirable direction,
+  // scaled to its own range and clamped sensibly.
+  const nudge = (
+    metric: typeof config.metrics[number] | undefined,
+    quality: 'good' | 'bad',
+    magnitude = 1,
+  ) => {
+    if (!metric) return;
+    const dir = (quality === 'good' ? 1 : -1) * (metric.goodDirection === 'up' ? 1 : -1);
+    const delta = stepOf(metric.startValue) * magnitude * dir;
+    setMetricsState(prev => {
+      const next = (prev[metric.id] ?? metric.startValue) + delta;
+      const clamped = metric.startValue <= 120 ? Math.min(100, Math.max(0, next)) : Math.max(0, next);
+      return { ...prev, [metric.id]: Math.round(clamped) };
+    });
+  };
+
   const executeAction = () => {
     addLog(`Executing action: ${tooling.actionLabel}...`, 'warning');
     setTimeout(() => {
+      nudge(rewardMetric, 'good', 0.5);
+      nudge(riskMetric, 'good', 0.5);
       addLog(`Action completed. ${tooling.actionDesc}`, 'success');
-      setActionFeedback('Action successful.');
+      setActionFeedback(`${tooling.actionLabel} succeeded. ${rewardMetric?.name} improved.`);
       setTimeout(() => setActionFeedback(null), 3000);
     }, 1500);
   };
@@ -296,21 +321,17 @@ export default function SimWrapper() {
   };
 
   const completeMission = (id: string) => {
-    setMissions(prev => prev.map(m => m.id === id ? { ...m, missionCompleted: true, missionAccepted: false } : m));
-    addLog('Mission successfully completed.', 'success');
-  };
-
-  // The first configured metric is each career's primary resource pool
-  // (budget, sanity, credibility, …) — rewards and option costs apply there.
-  const applyResourceDelta = (delta: number) => {
-    const resourceId = config.metrics[0]?.id;
-    if (!resourceId) return;
-    setMetricsState(prev => ({ ...prev, [resourceId]: Math.max(0, (prev[resourceId] ?? 0) + delta) }));
+    setMissions(prev => prev.map(m => m.id === id ? { ...m, missionCompleted: true, missionAccepted: false, status: 'completed' as const } : m));
+    nudge(rewardMetric, 'good', 1.5);
+    nudge(riskMetric, 'good', 0.8);
+    addLog(`Mission complete. ${rewardMetric?.name} up, ${riskMetric?.name} eased.`, 'success');
   };
 
   const resolveMissionOption = (missionId: string, option: MissionOption) => {
-    const reward = missions.find(m => m.id === missionId)?.missionRewardBudget || 0;
-    applyResourceDelta(option.budgetEffect + reward);
+    // Map the option's authored effects onto this career's actual metrics by sign.
+    nudge(rewardMetric, 'good', option.budgetEffect >= 0 ? 1.2 : 0.6);
+    if (option.budgetEffect < 0) nudge(rewardMetric, 'bad', 0.5);
+    nudge(riskMetric, option.riskEffect <= 0 ? 'good' : 'bad', 0.9);
     setMissions(prev => prev.map(m => m.id === missionId ? { ...m, missionCompleted: true, missionAccepted: false, status: 'completed' as const } : m));
     addLog(option.outcomeText, option.riskEffect <= 0 ? 'success' : 'warning');
   };
@@ -454,7 +475,7 @@ export default function SimWrapper() {
                  <React.Fragment key={metric.id}>
                     <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest leading-none col-start-1">{metric.name}</span>
                     <span className={`text-[13px] font-mono font-bold leading-none ${METRIC_COLOR_CLASSES[metric.color] || 'text-zinc-400'} col-start-2`}>
-                      {metric.id === 'budget' || metric.id === 'compute' ? '$' : ''}{(metricsState[metric.id] || metric.startValue).toLocaleString()}
+                      {metric.id === 'budget' || metric.id === 'compute' || metric.id === 'aum' || metric.id === 'laundered' ? '$' : ''}{(metricsState[metric.id] ?? metric.startValue).toLocaleString()}
                     </span>
                  </React.Fragment>
               ))}
