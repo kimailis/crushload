@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CAREER_MAP, CareerConfig } from '../lib/career-config';
 import CliWorkspace from './workspaces/CliWorkspace';
@@ -100,14 +101,13 @@ export default function CareerSim({ career }: { career: any }) {
       );
     }
 
-    if (activeTab === 'cli') return <CliWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'topology') return <TopologyWorkspace onAction={completeMission} />;
-    if (activeTab === 'editor' || activeTab === 'briefs') return <EditorWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'sql' || activeTab === 'dashboards') return <SqlWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'ticketing' || activeTab === 'tickets' || activeTab === 'ad') return <TicketingWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'dag' || activeTab === 'logs') return <DagViewerWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'cli') return <CliWorkspace career={career} onAction={completeMission} />;
-    if (activeTab === 'terminal') return <TerminalFeedWorkspace career={career} onAction={completeMission} />;
+    if (activeTab === 'cli') return <CliWorkspace careerId={career?.id} />;
+    if (activeTab === 'topology') return <TopologyWorkspace />;
+    if (activeTab === 'editor' || activeTab === 'briefs') return <EditorWorkspace config={config} />;
+    if (activeTab === 'sql' || activeTab === 'dashboards') return <SqlWorkspace />;
+    if (activeTab === 'ticketing' || activeTab === 'tickets' || activeTab === 'ad') return <TicketingWorkspace config={config} />;
+    if (activeTab === 'dag' || activeTab === 'logs') return <DagViewerWorkspace config={config} />;
+    if (activeTab === 'terminal') return <TerminalFeedWorkspace config={config} />;
     
     // Fallbacks
     if (activeTab === 'reports') return <ExcelSimulator />;
@@ -151,7 +151,7 @@ export default function CareerSim({ career }: { career: any }) {
          {/* Left Navigation Sidebar */}
          <div className="w-20 lg:w-64 border-r border-white/10 bg-[#0a0a0c] flex flex-col shrink-0 flex-none py-4 gap-2">
             {config.sidebarTabs.map(tab => {
-               const Icon = tab.iconComponent;
+               const Icon = (Icons as any)[tab.icon] || Icons.Terminal;
                const isActive = activeTab === tab.id;
                return (
                  <button 
