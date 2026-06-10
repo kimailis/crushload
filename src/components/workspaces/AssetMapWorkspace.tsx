@@ -6,14 +6,18 @@ import { CareerConfig } from '../../lib/career-config';
 type AssetStatus = 'Active' | 'Compromised' | 'Silent' | 'Extracted' | 'Burned';
 
 interface Asset {
-  id: string; location: string; status: AssetStatus; latency: string; x: string; y: string;
+  id: string; location: string; status: AssetStatus; latency: string; lat: number; lon: number;
 }
 
+// Equirectangular projection: lon/lat map linearly onto the map box.
+const projX = (lon: number) => ((lon + 180) / 360) * 100;
+const projY = (lat: number) => ((90 - lat) / 180) * 100;
+
 const INITIAL_ASSETS: Asset[] = [
-  { id: 'Alpha-1', location: 'London', status: 'Active', latency: '42ms', x: '45%', y: '30%' },
-  { id: 'Tango-4', location: 'Hong Kong', status: 'Compromised', latency: 'ERROR', x: '80%', y: '45%' },
-  { id: 'Echo-9', location: 'Moscow', status: 'Silent', latency: '900ms', x: '65%', y: '25%' },
-  { id: 'Zulu-X', location: 'Bogota', status: 'Active', latency: '120ms', x: '25%', y: '55%' },
+  { id: 'Alpha-1', location: 'London', status: 'Active', latency: '42ms', lat: 51.5, lon: -0.13 },
+  { id: 'Tango-4', location: 'Hong Kong', status: 'Compromised', latency: 'ERROR', lat: 22.32, lon: 114.17 },
+  { id: 'Echo-9', location: 'Moscow', status: 'Silent', latency: '900ms', lat: 55.75, lon: 37.62 },
+  { id: 'Zulu-X', location: 'Bogota', status: 'Active', latency: '120ms', lat: 4.71, lon: -74.07 },
 ];
 
 const dotColor = (s: AssetStatus) =>
@@ -85,33 +89,56 @@ export default function AssetMapWorkspace({ config }: { config: CareerConfig }) 
         </div>
       </div>
 
-      {/* Grid + map */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')] bg-contain bg-center bg-no-repeat opacity-10 invert sepia hue-rotate-[130deg] saturate-[300%]" />
-      </div>
+      {/* Faint global grid (decorative, full pane) */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
 
-      {/* Markers */}
-      <div className="relative z-10 w-full h-full">
-        {assets.map((asset, i) => (
-          <motion.button
-            key={asset.id}
-            onClick={() => setSelectedId(asset.id)}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ left: asset.x, top: asset.y }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: i * 0.15 }}
-            aria-label={`Select asset ${asset.id} in ${asset.location}, status ${asset.status}`}
-          >
-            <span className="relative flex items-center justify-center">
-              <span className={`w-3.5 h-3.5 rounded-full relative z-10 ring-2 ${selectedId === asset.id ? 'ring-white' : 'ring-transparent'} ${dotColor(asset.status)}`} />
-              {(asset.status === 'Compromised' || asset.status === 'Active') && (
-                <span className={`absolute -inset-2 rounded-full animate-ping opacity-50 ${asset.status === 'Compromised' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-              )}
-            </span>
-          </motion.button>
-        ))}
+      {/* Map + markers share ONE equirectangular box so dots line up with land */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center p-2">
+        <div className="relative w-full max-h-full aspect-[2/1] max-w-[min(100%,_calc((75vh_-_1rem)*2))]">
+          {/* Equirectangular world map fills the box exactly (-180..180, 90..-90) */}
+          <div
+            className="absolute inset-0 opacity-25 bg-no-repeat"
+            style={{
+              backgroundImage: "url('https://commons.wikimedia.org/wiki/Special:FilePath/Equirectangular_projection_SW.jpg')",
+              backgroundSize: '100% 100%',
+              filter: 'invert(1) sepia(1) hue-rotate(110deg) saturate(400%) brightness(0.8)',
+            }}
+          />
+          {/* Self-contained graticule fallback (renders even if the map image is blocked) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 360 180" preserveAspectRatio="none" aria-hidden="true">
+            {[30, 60, 90, 120, 150, 210, 240, 270, 300, 330].map(x => (
+              <line key={`m${x}`} x1={x} y1="0" x2={x} y2="180" stroke="#10b981" strokeWidth="0.3" opacity="0.18" />
+            ))}
+            {[30, 60, 120, 150].map(y => (
+              <line key={`p${y}`} x1="0" y1={y} x2="360" y2={y} stroke="#10b981" strokeWidth="0.3" opacity="0.18" />
+            ))}
+            {/* Prime meridian + equator emphasized */}
+            <line x1="180" y1="0" x2="180" y2="180" stroke="#10b981" strokeWidth="0.5" opacity="0.35" />
+            <line x1="0" y1="90" x2="360" y2="90" stroke="#10b981" strokeWidth="0.5" opacity="0.35" strokeDasharray="2 2" />
+          </svg>
+
+          {assets.map((asset, i) => (
+            <motion.button
+              key={asset.id}
+              onClick={() => setSelectedId(asset.id)}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${projX(asset.lon)}%`, top: `${projY(asset.lat)}%` }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: i * 0.15 }}
+              aria-label={`Select asset ${asset.id} in ${asset.location}, status ${asset.status}`}
+            >
+              <span className="relative flex items-center justify-center">
+                <span className={`w-3 h-3 rounded-full relative z-10 ring-2 ${selectedId === asset.id ? 'ring-white' : 'ring-black/40'} ${dotColor(asset.status)}`} />
+                {(asset.status === 'Compromised' || asset.status === 'Active') && (
+                  <span className={`absolute -inset-1.5 rounded-full animate-ping opacity-50 ${asset.status === 'Compromised' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                )}
+                {/* City label */}
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-wider text-zinc-300/80 bg-black/40 px-1 rounded pointer-events-none">{asset.location}</span>
+              </span>
+            </motion.button>
+          ))}
+        </div>
       </div>
 
       {/* Detail / ops panel */}
