@@ -1,0 +1,28 @@
+# Dependencies & build output (reinstalled/rebuilt inside the image)
+node_modules
+dist
+
+# VCS & local tooling
+.git
+.gitignore
+*.log
+*.tmp.mjs
+
+# Secrets — never bake into the image (Cloud Run injects env vars at runtime)
+.env
+.env.*
+!.env.example
+
+# Docs & deploy files not needed at build time
+README.md
+DEPLOY.md
+Dockerfile
+.dockerignore
+
+# Defensive: legacy cruft if it ever reappears on a branch
+repo.zip
+repo2.zip
+repo_dl
+src_cyber_backup
+app
+replace_theme.cjs
