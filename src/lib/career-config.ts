@@ -1,3 +1,5 @@
+import { Email } from '../types';
+
 export type LayoutType = 'cli' | 'sql' | 'editor' | 'ticketing' | 'dag_viewer' | 'terminal_feed';
 
 export interface CareerConfig {
@@ -7,6 +9,7 @@ export interface CareerConfig {
   layoutType: LayoutType;
   metrics: { id: string, name: string, startValue: number, color: string }[];
   sidebarTabs: { id: string, label: string, icon: string }[];
+  initialMails?: Email[];
 }
 
 export const CAREER_MAP: Record<string, CareerConfig> = {
