@@ -77,7 +77,7 @@ export default function SqlWorkspace() {
 
   const executeQuery = () => {
     setErrorStatus(null);
-    const cleaned = query.trim().replace(/;$/, '').toLowerCase();
+    const cleaned = query.trim().replace(/;$/, '').replace(/\s+/g, ' ').toLowerCase();
     
     // Add to history
     if (!history.includes(query)) {

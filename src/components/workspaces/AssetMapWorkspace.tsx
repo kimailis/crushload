@@ -39,7 +39,7 @@ export default function AssetMapWorkspace({ config }: { config: CareerConfig }) 
       </div>
 
       {/* Map Markers */}
-      <div className="relative z-10 w-full h-full">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 z-10">
          {assets.map((asset, i) => (
             <motion.div 
                key={asset.id}

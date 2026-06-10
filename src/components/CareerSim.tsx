@@ -12,6 +12,7 @@ import DagViewerWorkspace from './workspaces/DagViewerWorkspace';
 import TerminalFeedWorkspace from './workspaces/TerminalFeedWorkspace';
 import TopologyWorkspace from './workspaces/TopologyWorkspace';
 import ExcelSimulator from './workspaces/ExcelSimulator';
+import VisualAnalysisWorkspace from './workspaces/VisualAnalysisWorkspace';
 import CyberSecSim from './CyberSecSim';
 
 export default function CareerSim({ career }: { career: any }) {
@@ -104,7 +105,8 @@ export default function CareerSim({ career }: { career: any }) {
     if (activeTab === 'cli') return <CliWorkspace careerId={career?.id} />;
     if (activeTab === 'topology') return <TopologyWorkspace />;
     if (activeTab === 'editor' || activeTab === 'briefs') return <EditorWorkspace config={config} />;
-    if (activeTab === 'sql' || activeTab === 'dashboards') return <SqlWorkspace />;
+    if (activeTab === 'sql') return <SqlWorkspace />;
+    if (activeTab === 'dashboards') return <VisualAnalysisWorkspace />;
     if (activeTab === 'ticketing' || activeTab === 'tickets' || activeTab === 'ad') return <TicketingWorkspace config={config} />;
     if (activeTab === 'dag' || activeTab === 'logs') return <DagViewerWorkspace config={config} />;
     if (activeTab === 'terminal') return <TerminalFeedWorkspace config={config} />;

@@ -61,9 +61,9 @@ export default function ProfilePage() {
                      <p className="text-xs text-rose-200/70 mb-2">You are currently on the Free Track.</p>
                      <p className="text-sm text-rose-200 font-medium">Unlock Shadow Tracks (Premium)</p>
                   </div>
-                  <button className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition shadow-[0_0_20px_rgba(225,29,72,0.3)]">
-                     Upgrade to Premium
-                  </button>
+                  <a href="https://crushload.lemonsqueezy.com/checkout/buy/premium" target="_blank" rel="noopener noreferrer" className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition shadow-[0_0_20px_rgba(225,29,72,0.3)] block text-center">
+                     Upgrade to Premium (Lemon Squeezy)
+                  </a>
                </div>
             </div>
          </div>
