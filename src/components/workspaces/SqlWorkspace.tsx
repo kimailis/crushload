@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Database, Play, History, Table, Search, AlertCircle, FileSpreadsheet, ArrowRight } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
+import { Database, Play, History, Table, AlertCircle, FileSpreadsheet, ChevronRight, ChevronDown, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 
 type MockDb = Record<string, { cols: string[], rows: any[][] }>;
@@ -95,71 +95,114 @@ const DB_BY_CAREER: Record<string, MockDb> = {
 };
 
 const ANALYST_QUERIES = [
-  { label: 'Get all employees', sql: 'SELECT * FROM employees;' },
-  { label: 'View sales performance Q2', sql: "SELECT * FROM sales_performance WHERE quarter = '2026-Q2';" },
-  { label: 'High load servers (>50% CPU)', sql: 'SELECT hostname, cpu_load_percent, status FROM server_status WHERE cpu_load_percent > 50;' },
-  { label: 'Critical security policies', sql: "SELECT * FROM security_policy WHERE severity_level = 'CRITICAL';" },
+  { label: 'All employees', sql: 'SELECT * FROM employees;' },
+  { label: 'Top earners, sorted', sql: 'SELECT full_name, salary_usd FROM employees ORDER BY salary_usd DESC LIMIT 3;' },
+  { label: 'Q2 sales over $500k', sql: "SELECT * FROM sales_performance WHERE quarter = '2026-Q2' AND total_revenue_usd > 500000;" },
+  { label: 'Count critical policies', sql: "SELECT COUNT(*) FROM security_policy WHERE severity_level = 'CRITICAL';" },
+  { label: 'Servers under heavy load', sql: 'SELECT hostname, cpu_load_percent, status FROM server_status WHERE cpu_load_percent > 50;' },
 ];
 
 const ENGINEER_QUERIES = [
   { label: 'Failed pipeline runs', sql: "SELECT * FROM pipeline_runs WHERE state = 'FAILED';" },
-  { label: 'Flaky tasks (retries > 0)', sql: 'SELECT * FROM dag_tasks WHERE retries > 0;' },
-  { label: 'Lagging Kafka topics', sql: 'SELECT topic, lag, status FROM kafka_topics WHERE lag > 500;' },
-  { label: 'Warehouse spend by team', sql: 'SELECT warehouse, credits_used, owner_team FROM warehouse_costs;' },
+  { label: 'Slowest tasks, sorted', sql: 'SELECT task_id, avg_runtime_sec FROM dag_tasks ORDER BY avg_runtime_sec DESC;' },
+  { label: 'Flaky revenue-DAG tasks', sql: "SELECT * FROM dag_tasks WHERE retries > 0 AND dag_name LIKE '%revenue%';" },
+  { label: 'Count lagging topics', sql: 'SELECT COUNT(*) FROM kafka_topics WHERE lag > 500;' },
+  { label: 'Costliest warehouses', sql: 'SELECT warehouse, credits_used, owner_team FROM warehouse_costs ORDER BY credits_used DESC LIMIT 3;' },
 ];
 
 const QUERIES_BY_CAREER: Record<string, typeof ANALYST_QUERIES> = {
   'data-engineer': ENGINEER_QUERIES
 };
 
-// Tiny SQL evaluator: supports SELECT <cols|*> FROM <table> [WHERE col <op> value]
-function runQuery(db: MockDb, rawQuery: string): { cols: string[], rows: any[][] } {
-  const cleaned = rawQuery.trim().replace(/;$/, '').toLowerCase();
-  const tableName = Object.keys(db).find(tbl => cleaned.includes(`from ${tbl}`));
-  if (!tableName) {
-    throw new Error('Relation "' + (cleaned.split(/from\s+/)[1]?.split(/\s/)[0] || '?') + '" does not exist. Check table schemas listed on left panel.');
-  }
+interface QueryResult { cols: string[]; rows: any[][] }
 
-  const table = db[tableName];
-  let cols = [...table.cols];
+// Mini SQL engine. Supports:
+//   SELECT *|col[, col…]|COUNT(*) FROM table
+//   [WHERE col op value [AND col op value …]]   op: = != <> > < >= <= LIKE
+//   [ORDER BY col [ASC|DESC]] [LIMIT n]
+function runQuery(db: MockDb, rawQuery: string): QueryResult {
+  const sql = rawQuery.trim().replace(/;\s*$/, '').replace(/\s+/g, ' ');
+  const m = sql.match(/^select\s+(.+?)\s+from\s+([a-z0-9_]+)(?:\s+where\s+(.+?))?(?:\s+order\s+by\s+([a-z0-9_]+)(?:\s+(asc|desc))?)?(?:\s+limit\s+(\d+))?$/i);
+  if (!m) {
+    throw new Error('Could not parse query. Supported: SELECT cols|*|COUNT(*) FROM table [WHERE …] [ORDER BY col] [LIMIT n]');
+  }
+  const [, selectPart, tableName, wherePart, orderCol, orderDir, limitStr] = m;
+
+  const tableKey = Object.keys(db).find(t => t.toLowerCase() === tableName.toLowerCase());
+  if (!tableKey) {
+    throw new Error(`Table "${tableName}" does not exist. Available: ${Object.keys(db).join(', ')}`);
+  }
+  const table = db[tableKey];
+  const colIdx = (name: string) => {
+    const i = table.cols.findIndex(c => c.toLowerCase() === name.toLowerCase());
+    if (i === -1) throw new Error(`Column "${name}" not found on ${tableKey}. Columns: ${table.cols.join(', ')}`);
+    return i;
+  };
+
   let rows = table.rows.map(r => [...r]);
 
-  const whereMatch = cleaned.match(/where\s+(\w+)\s*(=|!=|>=|<=|>|<)\s*'?"?([^'"]+?)'?"?\s*$/);
-  if (whereMatch) {
-    const [, col, op, rawVal] = whereMatch;
-    const colIdx = table.cols.findIndex(c => c.toLowerCase() === col);
-    if (colIdx === -1) throw new Error(`Column "${col}" does not exist on ${tableName}.`);
-    const val = rawVal.trim();
-    const numVal = Number(val);
-    rows = rows.filter(r => {
-      const cell = r[colIdx];
-      if (typeof cell === 'number' && !Number.isNaN(numVal)) {
-        switch (op) {
-          case '=': return cell === numVal;
-          case '!=': return cell !== numVal;
-          case '>': return cell > numVal;
-          case '<': return cell < numVal;
-          case '>=': return cell >= numVal;
-          case '<=': return cell <= numVal;
+  if (wherePart) {
+    const conds = wherePart.split(/\s+and\s+/i);
+    for (const cond of conds) {
+      const cm = cond.trim().match(/^([a-z0-9_]+)\s*(=|!=|<>|>=|<=|>|<|like)\s*(.+)$/i);
+      if (!cm) throw new Error(`Could not parse condition "${cond.trim()}". Use: column = value, column > 10, column LIKE '%text%'`);
+      const [, colName, opRaw, rawVal] = cm;
+      const op = opRaw.toLowerCase();
+      const idx = colIdx(colName);
+      const val = rawVal.trim().replace(/^['"]|['"]$/g, '');
+      const numVal = Number(val);
+      rows = rows.filter(r => {
+        const cell = r[idx];
+        if (op === 'like') {
+          const pattern = '^' + val.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.') + '$';
+          return new RegExp(pattern).test(String(cell).toLowerCase());
         }
-      }
-      const cellStr = String(cell).toLowerCase();
-      return op === '!=' ? cellStr !== val : cellStr === val;
+        if (typeof cell === 'number' && !Number.isNaN(numVal)) {
+          switch (op) {
+            case '=': return cell === numVal;
+            case '!=': case '<>': return cell !== numVal;
+            case '>': return cell > numVal;
+            case '<': return cell < numVal;
+            case '>=': return cell >= numVal;
+            case '<=': return cell <= numVal;
+          }
+        }
+        const a = String(cell).toLowerCase(), b = val.toLowerCase();
+        switch (op) {
+          case '=': return a === b;
+          case '!=': case '<>': return a !== b;
+          case '>': return a > b;
+          case '<': return a < b;
+          case '>=': return a >= b;
+          case '<=': return a <= b;
+        }
+        return false;
+      });
+    }
+  }
+
+  if (orderCol) {
+    const idx = colIdx(orderCol);
+    const dir = (orderDir || 'asc').toLowerCase() === 'desc' ? -1 : 1;
+    rows.sort((a, b) => {
+      const x = a[idx], y = b[idx];
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir;
+      return String(x).localeCompare(String(y)) * dir;
     });
   }
 
-  const selectMatch = cleaned.match(/select\s+(.+?)\s+from/);
-  if (selectMatch && selectMatch[1].trim() !== '*') {
-    const wanted = selectMatch[1].split(',').map(c => c.trim());
-    const indices = wanted.map(w => table.cols.findIndex(c => c.toLowerCase() === w));
-    if (indices.some(i => i === -1)) {
-      throw new Error(`Unknown column in SELECT list. Available: ${table.cols.join(', ')}.`);
-    }
-    cols = indices.map(i => table.cols[i]);
-    rows = rows.map(r => indices.map(i => r[i]));
-  }
+  if (limitStr) rows = rows.slice(0, parseInt(limitStr, 10));
 
-  return { cols, rows };
+  const sel = selectPart.trim();
+  if (/^count\s*\(\s*\*\s*\)$/i.test(sel)) {
+    return { cols: ['count'], rows: [[rows.length]] };
+  }
+  if (sel !== '*') {
+    const wanted = sel.split(',').map(c => c.trim());
+    const indices = wanted.map(colIdx);
+    return { cols: indices.map(i => table.cols[i]), rows: rows.map(r => indices.map(i => r[i])) };
+  }
+  return { cols: [...table.cols], rows };
 }
 
 export default function SqlWorkspace({ careerId }: { careerId?: string }) {
@@ -169,180 +212,212 @@ export default function SqlWorkspace({ careerId }: { careerId?: string }) {
 
   const [query, setQuery] = useState(`SELECT * FROM ${firstTable};`);
   const [selectedTable, setSelectedTable] = useState<string>(firstTable);
-  const [history, setHistory] = useState<string[]>([`SELECT * FROM ${firstTable};`]);
-  const [results, setResults] = useState<{ cols: string[], rows: any[][] }>({
-    cols: MOCK_DB[firstTable].cols,
-    rows: MOCK_DB[firstTable].rows
-  });
+  const [expandedTable, setExpandedTable] = useState<string | null>(firstTable);
+  const [history, setHistory] = useState<string[]>([]);
+  const [results, setResults] = useState<QueryResult>({ cols: MOCK_DB[firstTable].cols, rows: MOCK_DB[firstTable].rows });
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
+  const [execMs, setExecMs] = useState<number | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+
+  const lineCount = useMemo(() => Math.max(query.split('\n').length, 1), [query]);
+
+  const executeQuery = (sql?: string) => {
+    const q = (sql ?? query).trim();
+    if (!q) return;
+    setErrorStatus(null);
+    try {
+      const res = runQuery(MOCK_DB, q);
+      setResults(res);
+      setExecMs(Math.round(8 + Math.random() * 40 + res.rows.length * 1.5));
+      setHistory(prev => [q, ...prev.filter(h => h !== q)].slice(0, 8));
+    } catch (e: any) {
+      setErrorStatus(e.message || 'Syntax error near line 1.');
+      setExecMs(null);
+    }
+  };
 
   const handleTableClick = (tableName: string) => {
     setSelectedTable(tableName);
+    setExpandedTable(prev => prev === tableName ? null : tableName);
     const sql = `SELECT * FROM ${tableName};`;
     setQuery(sql);
-    setErrorStatus(null);
-    setResults({
-      cols: MOCK_DB[tableName].cols,
-      rows: MOCK_DB[tableName].rows
-    });
+    executeQuery(sql);
   };
 
-  const executeQuery = () => {
-    setErrorStatus(null);
-    if (!history.includes(query)) {
-      setHistory(prev => [query, ...prev].slice(0, 10));
-    }
-    try {
-      setResults(runQuery(MOCK_DB, query));
-    } catch (e: any) {
-      setErrorStatus(e.message || 'Syntax error near line 1.');
+  const insertColumn = (col: string) => {
+    setQuery(prev => {
+      const trimmed = prev.trim().replace(/;\s*$/, '');
+      return `${trimmed} ${col};`;
+    });
+    editorRef.current?.focus();
+  };
+
+  const onEditorKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      executeQuery();
     }
   };
 
   return (
-    <motion.div key="sql" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-black/40 border border-white/5 backdrop-blur-3xl rounded-[28px] shadow-2xl relative">
-      <div className="absolute inset-0 bg-[#060814]/70 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-900/10 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/4 pointer-events-none" />
-      </div>
+    <motion.div key="sql" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col h-[600px] lg:h-[75vh] lg:min-h-[600px] w-full max-w-7xl mx-auto overflow-hidden bg-[#0b0e1a] border border-white/10 rounded-[24px] shadow-2xl relative">
 
-      <div className="relative z-10 flex flex-col h-full w-full">
-        {/* Editor Shell Header */}
-        <header className="h-[60px] bg-black/20 flex items-center justify-between px-4 lg:px-6 shrink-0 z-50 border-b border-white/5 relative">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[13px] sm:text-[14px] font-bold tracking-widest text-[#ffcc00] uppercase flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-400" />
-              SQL Execution Bench <span className="text-zinc-600">|</span> <span className="text-zinc-500 font-mono text-[11px]">corp-postgresql-primary</span>
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-             <button onClick={executeQuery} className="bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 text-white px-4 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-2 transition shadow-[0_0_12px_rgba(16,185,129,0.3)] cursor-pointer">
-                <Play className="w-3.5 h-3.5 fill-white text-white" /> RUN
-             </button>
-          </div>
-        </header>
+      {/* Toolbar */}
+      <header className="h-[52px] bg-black/40 flex items-center justify-between px-4 shrink-0 border-b border-white/10 gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Database className="w-4 h-4 text-indigo-400 shrink-0" />
+          <h1 className="text-[13px] font-bold tracking-wider text-zinc-200 uppercase truncate">
+            SQL Bench <span className="hidden sm:inline text-zinc-600 font-normal">·</span> <span className="hidden sm:inline text-zinc-500 font-mono text-[11px] normal-case">corp-postgresql-primary</span>
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {execMs !== null && !errorStatus && (
+            <span className="hidden md:flex items-center gap-1.5 text-[11px] font-mono text-zinc-500"><Clock className="w-3.5 h-3.5" /> {execMs} ms</span>
+          )}
+          <span className="hidden lg:inline text-[10px] font-mono text-zinc-600">Ctrl+Enter</span>
+          <button onClick={() => executeQuery()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-[12px] font-bold flex items-center gap-2 transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+            <Play className="w-3.5 h-3.5 fill-white" /> RUN
+          </button>
+        </div>
+      </header>
 
-        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10">
-          {/* Left Schemas Sidebar */}
-          <aside className="order-3 lg:order-none w-full lg:w-[240px] bg-slate-950/40 backdrop-blur-3xl flex flex-col shrink-0 border-t lg:border-t-0 lg:border-r border-white/5 overflow-y-auto p-4 gap-4 scrollbar-thin scrollbar-thumb-white/10">
-            <div>
-              <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-3 uppercase flex items-center gap-1.5">
-                <Table className="w-3.5 h-3.5" /> Corporate Tables
-              </h2>
-              <div className="space-y-1">
-                {Object.keys(MOCK_DB).map(tbl => (
-                  <button 
-                    key={tbl}
+      <main className="flex-1 flex min-h-0">
+        {/* Schema sidebar */}
+        <aside className="hidden md:flex w-[230px] flex-col shrink-0 border-r border-white/10 bg-black/20 overflow-y-auto p-3 gap-4">
+          <div>
+            <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-2 uppercase flex items-center gap-1.5 px-1">
+              <Table className="w-3.5 h-3.5" /> Tables
+            </h2>
+            <div className="space-y-0.5">
+              {Object.keys(MOCK_DB).map(tbl => (
+                <div key={tbl}>
+                  <button
                     onClick={() => handleTableClick(tbl)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-[12px] font-medium outline-none border ${
-                      selectedTable === tbl 
-                        ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-300' 
-                        : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                    className={`w-full flex items-center gap-1.5 px-2 py-2 rounded-lg transition text-[12.5px] font-medium font-mono ${
+                      selectedTable === tbl ? 'bg-indigo-600/20 text-indigo-300' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                     }`}
                   >
-                    <span>{tbl}</span>
-                    <span className="text-[10px] font-mono opacity-40">({MOCK_DB[tbl].rows.length}r)</span>
+                    {expandedTable === tbl ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                    <span className="truncate">{tbl}</span>
+                    <span className="ml-auto text-[10px] opacity-40">{MOCK_DB[tbl].rows.length}</span>
                   </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-3 uppercase">Presets</h2>
-              <div className="space-y-1">
-                {SAMPLE_QUERIES.map((q, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => {
-                      setQuery(q.sql);
-                      setErrorStatus(null);
-                    }}
-                    className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] text-zinc-300 transition block truncate"
-                    title={q.sql}
-                  >
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-2 uppercase flex items-center gap-1"><History className="w-3 h-3" /> History</h2>
-              <div className="space-y-1 max-h-24 overflow-y-auto">
-                {history.map((h, i) => (
-                  <div key={i} className="text-[9px] font-mono text-zinc-600 truncate px-1 py-0.5" title={h}>{h}</div>
-                ))}
-              </div>
-            </div>
-          </aside>
-
-          {/* Central Workspace */}
-          <div className="flex-1 flex flex-col min-w-0 p-4 lg:p-6 overflow-hidden relative z-10 gap-4">
-             {/* Edit Code Terminal */}
-             <div className="flex-[0.5] min-h-[160px] w-full flex flex-col bg-black/50 border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-                <div className="h-8 bg-black/40 border-b border-white/5 flex items-center px-4 gap-2 shrink-0 justify-between">
-                  <span className="text-[10px] font-mono font-bold text-zinc-500 tracking-widest uppercase flex items-center gap-1.5"><ArrowRight className="w-3 h-3 text-indigo-400" /> PostgreSQL Editor</span>
-                  <span className="text-[10px] text-emerald-500/80 font-mono">Status: Connected</span>
-                </div>
-                <textarea 
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  className="flex-grow bg-transparent text-indigo-300 font-mono text-[13px] md:text-[14px] p-4 outline-none resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
-                  spellCheck={false}
-                />
-             </div>
-
-             {/* Error Notification */}
-             {errorStatus && (
-               <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 flex items-center gap-2.5 text-[12px] font-mono">
-                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                 <span>ERROR: {errorStatus}</span>
-               </div>
-             )}
-
-             {/* Results Grid Table */}
-             <div className="flex-grow min-h-[220px] w-full flex flex-col bg-[#02050c]/80 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative">
-                <div className="h-8 bg-black/20 border-b border-white/5 flex items-center px-4 gap-2 shrink-0 justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Table className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-[10px] font-mono font-bold text-zinc-400 tracking-widest uppercase">Returned Rows</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-zinc-600">{results.rows.length} rows returned</span>
-                </div>
-                
-                <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-white/10">
-                  {results.rows.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-zinc-600 text-[11px] uppercase tracking-wider font-mono gap-1.5">
-                       <FileSpreadsheet className="w-6 h-6 opacity-40 text-zinc-500" /> No Rows Returned
+                  {expandedTable === tbl && (
+                    <div className="ml-5 border-l border-white/10 pl-2 py-1 space-y-0.5">
+                      {MOCK_DB[tbl].cols.map(col => (
+                        <button key={col} onClick={() => insertColumn(col)} title={`Insert "${col}" into query`} className="block w-full text-left text-[11px] font-mono text-zinc-500 hover:text-indigo-300 px-1.5 py-0.5 rounded transition truncate">
+                          {col}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <table className="w-full text-left border-collapse font-sans">
-                      <thead>
-                        <tr>
-                          {results.cols.map((c, i) => (
-                            <th key={i} className="py-2 px-3 border-b border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">{c}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.rows.map((row, i) => (
-                          <tr key={i} className="hover:bg-indigo-500/5 transition-colors group border-b border-white/5">
-                            {row.map((cell, j) => (
-                              <td key={j} className="py-2 px-3 text-[12px] font-mono text-zinc-300 font-medium group-hover:text-white transition">
-                                {typeof cell === 'number' && results.cols[j].includes('usd') ? `$${cell.toLocaleString()}` : String(cell)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   )}
                 </div>
-             </div>
+              ))}
+            </div>
           </div>
-        </main>
-      </div>
+
+          <div>
+            <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-2 uppercase px-1">Try these</h2>
+            <div className="space-y-1">
+              {SAMPLE_QUERIES.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setQuery(q.sql); executeQuery(q.sql); }}
+                  className="w-full text-left px-2.5 py-2 rounded-lg bg-white/[0.03] hover:bg-indigo-600/15 border border-white/5 hover:border-indigo-500/30 text-[11.5px] text-zinc-300 transition block truncate cursor-pointer"
+                  title={q.sql}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {history.length > 0 && (
+            <div>
+              <h2 className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] mb-2 uppercase flex items-center gap-1 px-1"><History className="w-3 h-3" /> History</h2>
+              <div className="space-y-0.5">
+                {history.map((h, i) => (
+                  <button key={i} onClick={() => { setQuery(h); executeQuery(h); }} className="block w-full text-left text-[10.5px] font-mono text-zinc-500 hover:text-zinc-300 px-1.5 py-1 rounded hover:bg-white/5 transition truncate" title={h}>
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* Editor + results */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          {/* Editor */}
+          <div className="h-[38%] min-h-[120px] flex flex-col border-b border-white/10 bg-[#060812]">
+            <div className="h-8 flex items-center justify-between px-3 border-b border-white/5 shrink-0">
+              <span className="text-[10px] font-mono font-bold text-zinc-500 tracking-widest uppercase">Query Editor</span>
+              <span className="text-[10px] text-emerald-500/80 font-mono">● Connected</span>
+            </div>
+            <div className="flex-1 flex min-h-0">
+              <div ref={gutterRef} className="w-10 shrink-0 overflow-hidden bg-black/30 text-right pr-2 pt-3 select-none" aria-hidden="true">
+                {Array.from({ length: lineCount }, (_, i) => (
+                  <div key={i} className="text-[12px] leading-[1.6] font-mono text-zinc-700">{i + 1}</div>
+                ))}
+              </div>
+              <textarea
+                ref={editorRef}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={onEditorKeyDown}
+                onScroll={e => { if (gutterRef.current) gutterRef.current.scrollTop = (e.target as HTMLTextAreaElement).scrollTop; }}
+                spellCheck={false}
+                aria-label="SQL query editor"
+                className="flex-1 bg-transparent text-indigo-200 font-mono text-[14px] leading-[1.6] p-3 pt-3 outline-none resize-none min-w-0"
+              />
+            </div>
+          </div>
+
+          {/* Error */}
+          {errorStatus && (
+            <div className="px-4 py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-rose-300 flex items-start gap-2 text-[12px] font-mono shrink-0">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{errorStatus}</span>
+            </div>
+          )}
+
+          {/* Results */}
+          <div className="flex-1 flex flex-col min-h-0 bg-[#080a14]">
+            <div className="h-8 flex items-center justify-between px-3 border-b border-white/5 shrink-0">
+              <span className="text-[10px] font-mono font-bold text-zinc-500 tracking-widest uppercase flex items-center gap-1.5"><Table className="w-3 h-3" /> Results</span>
+              <span className="text-[10px] font-mono text-zinc-500">{results.rows.length} row{results.rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="flex-1 overflow-auto min-h-0">
+              {results.rows.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-zinc-600 text-[11px] uppercase tracking-wider font-mono gap-2 py-10">
+                  <FileSpreadsheet className="w-6 h-6 opacity-40" /> No rows returned
+                </div>
+              ) : (
+                <table className="min-w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-[#0d1020] z-10">
+                    <tr>
+                      {results.cols.map((c, i) => (
+                        <th key={i} className="py-2.5 px-4 border-b border-white/10 text-[10px] font-bold text-zinc-400 uppercase tracking-widest font-mono whitespace-nowrap">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.rows.map((row, i) => (
+                      <tr key={i} className="hover:bg-indigo-500/5 transition-colors border-b border-white/5">
+                        {row.map((cell, j) => (
+                          <td key={j} className="py-2 px-4 text-[12.5px] font-mono text-zinc-300 whitespace-nowrap">
+                            {typeof cell === 'number' && results.cols[j].includes('usd') ? `$${cell.toLocaleString()}` : String(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
     </motion.div>
   );
 }
