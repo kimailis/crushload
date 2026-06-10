@@ -10,7 +10,16 @@ export default function TerminalFeedWorkspace({ config }: { config: CareerConfig
     'HOUSING MARKET SHOWS SIGNS OF COOLING',
   ]);
   
-  const [dataPoints, setDataPoints] = useState([45, 52, 48, 60, 55, 65, 58, 70, 68]);
+  const BASE_POINTS = [45, 52, 48, 60, 55, 65, 58, 70, 68];
+  const [dataPoints, setDataPoints] = useState(BASE_POINTS);
+  const [multiplier, setMultiplier] = useState(50);
+  const [inflation, setInflation] = useState(8.5);
+
+  // The chart is the base series scaled by the Y-axis multiplier and offset by inflation
+  const displayPoints = dataPoints.map(v => {
+    const scaled = v * (multiplier / 50) + (inflation - 8.5) * 2;
+    return Math.max(2, Math.min(100, scaled));
+  });
 
   useEffect(() => {
     const i = setInterval(() => {
@@ -98,12 +107,12 @@ export default function TerminalFeedWorkspace({ config }: { config: CareerConfig
                    <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#ffaa00 1px, transparent 1px), linear-gradient(90deg, #ffaa00 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                    
                    <div className="w-full h-full flex items-end justify-between gap-3 relative z-10 pt-10">
-                      {dataPoints.map((val, i) => (
-                         <motion.div 
+                      {displayPoints.map((val, i) => (
+                         <motion.div
                            key={i}
                            initial={{ height: 0 }}
                            animate={{ height: `${val}%` }}
-                           transition={{ duration: 1, delay: i * 0.1, ease: 'easeOut' }}
+                           transition={{ duration: 0.5, ease: 'easeOut' }}
                            className="w-full bg-gradient-to-t from-[#ffaa00]/20 to-[#ffaa00] opacity-80 border-t-[3px] border-[#ffaa00] relative group cursor-crosshair"
                          >
                             <div className="absolute inset-0 bg-[#ffaa00] opacity-0 group-hover:opacity-20 transition" />
@@ -124,16 +133,16 @@ export default function TerminalFeedWorkspace({ config }: { config: CareerConfig
              
              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#ffaa00]/20 p-6 flex flex-col gap-6">
                 <div>
-                   <label className="text-[10px] font-bold tracking-[0.2em] text-[#ffaa00]/70 block mb-3 uppercase">Y-Axis Multiplier</label>
-                   <input type="range" min="1" max="100" className="w-full accent-[#ffaa00] h-1.5 bg-[#ffaa00]/20 appearance-none rounded-none cursor-pointer border border-[#ffaa00]/30" />
+                   <label className="text-[10px] font-bold tracking-[0.2em] text-[#ffaa00]/70 block mb-3 uppercase">Y-Axis Multiplier · {(multiplier / 50).toFixed(2)}x</label>
+                   <input type="range" min="10" max="100" value={multiplier} onChange={e => setMultiplier(Number(e.target.value))} aria-label="Y-axis multiplier" className="w-full accent-[#ffaa00] h-1.5 bg-[#ffaa00]/20 appearance-none rounded-none cursor-pointer border border-[#ffaa00]/30" />
                 </div>
                 <div>
                    <label className="text-[10px] font-bold tracking-[0.2em] text-[#ffaa00]/70 block mb-3 uppercase">Inflation Offset (%)</label>
-                   <input type="number" defaultValue={8.5} className="w-full bg-black/60 border border-[#ffaa00]/30 text-[#ffaa00] p-3 focus:outline-none focus:border-[#ffaa00] focus:bg-[#ffaa00]/10 transition shadow-inner font-mono text-[14px]" />
+                   <input type="number" step="0.5" value={inflation} onChange={e => setInflation(Number(e.target.value))} aria-label="Inflation offset percent" className="w-full bg-black/60 border border-[#ffaa00]/30 text-[#ffaa00] p-3 focus:outline-none focus:border-[#ffaa00] focus:bg-[#ffaa00]/10 transition shadow-inner font-mono text-[14px]" />
                 </div>
                 <div>
-                   <button onClick={() => setDataPoints(dataPoints.map(v => v + (Math.random() * 10 - 5)))} className="w-full bg-[#ffaa00]/10 hover:bg-[#ffaa00] text-[#ffaa00] hover:text-black border border-[#ffaa00]/50 py-3 transition-all duration-300 font-bold tracking-widest text-[11px] uppercase shadow-[0_0_15px_rgba(255,170,0,0.1)] hover:shadow-[0_0_20px_rgba(255,170,0,0.4)] cursor-pointer">
-                      Recalculate Model
+                   <button onClick={() => setDataPoints(BASE_POINTS.map(v => Math.max(2, v + (Math.random() * 16 - 8))))} className="w-full bg-[#ffaa00]/10 hover:bg-[#ffaa00] text-[#ffaa00] hover:text-black border border-[#ffaa00]/50 py-3 transition-all duration-300 font-bold tracking-widest text-[11px] uppercase shadow-[0_0_15px_rgba(255,170,0,0.1)] hover:shadow-[0_0_20px_rgba(255,170,0,0.4)] cursor-pointer">
+                      Resample Series
                    </button>
                 </div>
                 

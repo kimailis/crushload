@@ -134,27 +134,27 @@ export default function VisualAnalysisWorkspace() {
               </div>
 
               {/* Bar Layout */}
-              <div className="flex-1 flex items-end justify-between gap-4 px-2 pt-6 relative">
+              <div className="flex-1 flex items-stretch justify-between gap-4 px-2 pt-6 relative min-h-[200px]">
                  <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/10" />
                  {data.bars.map((bar, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center group cursor-pointer relative">
-                       <div 
-                         className="absolute -top-7 text-[10px] font-mono font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 px-1.5 py-0.5 rounded border border-white/5"
+                    <div key={bar.label} className="flex-1 h-full flex flex-col justify-end items-center group cursor-pointer relative">
+                       <div
+                         className="absolute -top-1 text-[10px] font-mono font-bold text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 px-1.5 py-0.5 rounded border border-white/5 z-10"
                        >
                          {bar.val}%
                        </div>
-                       
+
                        {/* Animated Bar */}
-                       <motion.div 
+                       <motion.div
                          initial={{ height: 0 }}
                          animate={{ height: bar.h }}
                          transition={{ duration: 0.8, delay: i * 0.05 }}
-                         className="w-full bg-gradient-to-t from-indigo-600/30 to-indigo-500 rounded-t-lg relative overflow-hidden border-t-2 border-indigo-400"
+                         className="w-full bg-gradient-to-t from-indigo-600/30 to-indigo-500 rounded-t-lg relative overflow-hidden border-t-2 border-indigo-400 min-h-[4px]"
                        >
                           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition duration-200" />
                        </motion.div>
-                       
-                       <span className="text-[10px] font-bold text-zinc-500 uppercase mt-3 tracking-widest">{bar.label}</span>
+
+                       <span className="text-[10px] font-bold text-zinc-500 uppercase mt-3 tracking-widest shrink-0">{bar.label}</span>
                     </div>
                  ))}
               </div>
