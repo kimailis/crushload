@@ -179,7 +179,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
             </div>
           </header>
 
-          <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
             {/* Left controls */}
             <aside className="w-full lg:w-[200px] bg-slate-950/20 backdrop-blur-md flex flex-col shrink-0 p-4 border-b lg:border-b-0 lg:border-r border-white/5 gap-3">
                <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pipeline Tasks</h3>
@@ -193,7 +193,7 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
             </aside>
 
             {/* Simulated interactive Canvas mapping */}
-            <div className="flex-grow p-4 lg:p-6 bg-[#030712] relative overflow-auto">
+            <div className="flex-grow p-4 lg:p-6 bg-[#030712] relative overflow-auto min-h-[280px]">
                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
 
                {/* Sized inner canvas so all nodes are reachable (scrolls on narrow widths instead of clipping) */}
@@ -285,8 +285,8 @@ export default function DagViewerWorkspace({ config }: { config: CareerConfig })
           </div>
         </header>
 
-        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          
+        <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+
           {/* Node deployment controller sidebar */}
           <aside className="w-full lg:w-[240px] bg-slate-950/45 backdrop-blur-md flex flex-col shrink-0 p-4 border-b lg:border-b-0 lg:border-r border-white/5 gap-4 overflow-y-auto select-none">
              
