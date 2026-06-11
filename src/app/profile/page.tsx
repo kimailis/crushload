@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, ShieldCheck, Cpu, HardDrive, Sparkles, Trophy, Flame, Layers } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -7,6 +7,7 @@ const spring = { type: 'spring', stiffness: 320, damping: 26 } as const;
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const [upgradeNote, setUpgradeNote] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#05070f] text-slate-300 font-sans relative overflow-hidden">
@@ -122,9 +123,14 @@ export default function ProfilePage() {
                   <p className="text-[12px] text-slate-300/80 leading-relaxed mb-4">
                     You're on the free plan. Premium opens the high-stakes fictional roles.
                   </p>
-                  <button className="w-full bg-white text-slate-900 hover:bg-white/90 font-semibold text-[13px] py-3 rounded-2xl transition cursor-pointer shadow-lg shadow-black/20">
+                  <button onClick={() => setUpgradeNote(true)} className="w-full bg-white text-slate-900 hover:bg-white/90 font-semibold text-[13px] py-3 rounded-2xl transition cursor-pointer shadow-lg shadow-black/20">
                     Upgrade to Premium
                   </button>
+                  {upgradeNote && (
+                    <p className="mt-3 text-[11px] text-center text-amber-200/90">
+                      Premium checkout isn't live yet — Shadow Tracks are playable from the home page for now.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

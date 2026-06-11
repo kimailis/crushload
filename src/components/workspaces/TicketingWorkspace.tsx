@@ -22,6 +22,14 @@ export default function TicketingWorkspace({ config }: { config: CareerConfig })
     }
   };
 
+  const handleEscalate = (id: string) => {
+    setTickets(tickets.map(t => t.id === id ? { ...t, status: 'escalated', response: 'Escalated to Tier-2 support queue.' } : t));
+    const remainingOpen = tickets.filter(t => t.id !== id && t.status === 'open');
+    if (remainingOpen.length > 0) {
+       setActiveTicket(remainingOpen[0].id);
+    }
+  };
+
   const selectedTicket = tickets.find(t => t.id === activeTicket);
 
   return (
@@ -130,7 +138,7 @@ export default function TicketingWorkspace({ config }: { config: CareerConfig })
                              className="w-full bg-black/40 border border-white/10 rounded-2xl p-5 text-[14px] font-mono text-zinc-300 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500/50 min-h-[140px] mb-6 shadow-inner placeholder-zinc-700 transition"
                            />
                            <div className="flex justify-end gap-3">
-                              <button type="button" className="px-6 py-3 text-[13px] font-bold text-zinc-400 hover:text-white transition hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10">Escalate Incident</button>
+                              <button type="button" onClick={() => handleEscalate(selectedTicket.id)} className="px-6 py-3 text-[13px] font-bold text-zinc-400 hover:text-white transition hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 cursor-pointer">Escalate Incident</button>
                               <button type="submit" className="bg-indigo-600 border border-indigo-500/50 text-white hover:bg-indigo-500 px-8 py-3 rounded-xl text-[13px] font-bold transition shadow-[0_0_20px_rgba(79,70,229,0.3)]">Close Incident</button>
                            </div>
                         </form>
