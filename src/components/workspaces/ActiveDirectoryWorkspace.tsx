@@ -136,10 +136,10 @@ export default function ActiveDirectoryWorkspace() {
         </header>
 
         {/* Workspace columns */}
-        <main className="flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-white/5 overflow-hidden">
-          
+        <main className="flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-white/5 overflow-y-auto lg:overflow-hidden">
+
           {/* Column 1: Groups (Width: 25%) */}
-          <section className="flex-[0.8] flex flex-col min-w-0 h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
+          <section className="lg:flex-[0.8] flex flex-col min-w-0 lg:h-full p-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
              <div>
                 <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                    <FolderGit2 className="w-3.5 h-3.5" /> Security Groups
@@ -176,7 +176,7 @@ export default function ActiveDirectoryWorkspace() {
           </section>
 
           {/* Column 2: Users (Width: 45%) */}
-          <section className="flex-1.2 flex flex-col min-w-0 h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
+          <section className="lg:flex-[1.2] flex flex-col min-w-0 lg:h-full p-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
              <div className="flex justify-between items-center mb-1">
                 <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                    <User className="w-3.5 h-3.5" /> Domain Accounts
@@ -246,7 +246,7 @@ export default function ActiveDirectoryWorkspace() {
           </section>
 
           {/* Column 3: GPO (Width: 30%) */}
-          <section className="flex-[0.9] flex flex-col min-w-0 h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
+          <section className="lg:flex-[0.9] flex flex-col min-w-0 lg:h-full p-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 gap-4">
              <div>
                 <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                    <Settings2 className="w-3.5 h-3.5" /> Group Policies (GPOs)
